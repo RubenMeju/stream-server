@@ -322,6 +322,12 @@
 
 <script>
 /* ── Partículas ──────────────────────────────────── */
+window.addEventListener('load', () => {
+  const sonido = document.getElementById('alertSound');
+  sonido.volume = 1; // asegúrate que el volumen esté al 100%
+  sonido.play().catch(() => {}); // ignora el error, solo desbloquea autoplay
+});
+
 const canvas = document.getElementById('particles');
 const ctx    = canvas.getContext('2d');
 canvas.width  = window.innerWidth;
@@ -439,28 +445,7 @@ socket.onopen    = () => console.log('✅ Conectado al WebSocket');
 socket.onerror   = err  => console.error('❌ Error WebSocket:', err);
 socket.onmessage = evt  => mostrarAlerta(evt.data);
 
-// ── DEBUG (quitar en produccion) ──────────────────
-const debugDiv = document.createElement('div');
-debugDiv.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:999';
-
-const btnAlerta = document.createElement('button');
-btnAlerta.textContent = 'Test alerta';
-btnAlerta.style.cssText = 'padding:10px 18px;background:#bf00ff;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px';
-btnAlerta.onclick = () => mostrarAlerta('TestUsuario');
-
-const btnSonido = document.createElement('button');
-btnSonido.textContent = 'Test solo sonido';
-btnSonido.style.cssText = 'padding:10px 18px;background:#00f5ff;color:#000;border:none;border-radius:6px;cursor:pointer;font-size:14px';
-btnSonido.onclick = () => {
-  const s = document.getElementById('alertSound');
-  console.log('src:', s.src, '| readyState:', s.readyState, '| error:', s.error);
-  s.currentTime = 0;
-  s.play().then(() => console.log('OK')).catch(e => console.error('ERROR:', e.message));
-};
-
-debugDiv.appendChild(btnAlerta);
-debugDiv.appendChild(btnSonido);
-document.body.appendChild(debugDiv);
+// setTimeout(() => mostrarAlerta('NombreDemo'), 1000); // DEBUG
 </script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 @echo off
 
 REM Carpeta del proyecto
-set "PROJECT_PATH=C:\Users\ruben\Desktop\Projects\para-twitch\alertas"
+set "PROJECT_PATH=C:\Users\ruben\Desktop\Projects\twitch\alertas"
 
 REM Carpeta de OBS
 set "OBS_FOLDER=C:\Program Files\obs-studio\bin\64bit"
