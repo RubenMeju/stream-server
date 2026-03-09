@@ -1,0 +1,15 @@
+# Dependencias de Node
+node_modules/
+
+# Logs
+*.log
+
+# Configuración de entorno
+.env
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Sonidos o assets grandes que no quieres subir
+#*.mp3
