@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Alerta Hacker Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00ff41;
+    --dim:   #00ff4155;
+    --dark:  #0a0f0a;
+    --glow:  0 0 8px #00ff41, 0 0 20px #00ff4166;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: transparent; overflow: hidden; }
+
+  /* ══ WRAPPER ══ */
+  #alerta {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    width: 620px;
+  }
+
+  #alerta.visible { animation: termReveal 0.2s steps(1) forwards; }
+  #alerta.hiding  { animation: termHide   0.15s steps(1) forwards; }
+
+  @keyframes termReveal {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes termHide {
+    0%   { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ══ VENTANA TERMINAL ══ */
+  .terminal {
+    background: #0c0f0c;
+    border: 1px solid #00ff4133;
+    border-radius: 6px;
+    box-shadow:
+      0 0 0 1px #00ff4111,
+      0 0 30px #00ff4122,
+      0 0 80px #00ff410d,
+      inset 0 0 60px #00000066;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Scanlines */
+  .terminal::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,255,65,0.012) 3px,
+      rgba(0,255,65,0.012) 4px
+    );
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  /* ── Barra de título ── */
+  .title-bar {
+    background: #111811;
+    border-bottom: 1px solid #00ff4122;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+  }
+
+  .title-dots { display: flex; gap: 6px; }
+  .dot {
+    width: 11px; height: 11px; border-radius: 50%;
+  }
+  .dot.red    { background: #ff5f57; box-shadow: 0 0 4px #ff5f5788; }
+  .dot.yellow { background: #febc2e; box-shadow: 0 0 4px #febc2e88; }
+  .dot.green  { background: #28c840; box-shadow: 0 0 4px #28c84088; }
+
+  .title-text {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: #00ff4177;
+    letter-spacing: 2px;
+  }
+
+  .title-right {
+    margin-left: auto;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: #00ff4144;
+    letter-spacing: 1px;
+  }
+
+  /* ── Cuerpo terminal ── */
+  .term-body {
+    padding: 16px 20px 20px;
+    min-height: 220px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--green);
+    line-height: 1.7;
+    position: relative;
+  }
+
+  .line { display: block; white-space: pre-wrap; word-break: break-all; }
+  .line.dim     { color: #00ff4155; }
+  .line.bright  { color: #00ff41; text-shadow: var(--glow); }
+  .line.warn    { color: #ffb800; text-shadow: 0 0 8px #ffb80088; }
+  .line.success { color: #00ff41; text-shadow: var(--glow); font-weight: bold; }
+  .line.red     { color: #ff4444; text-shadow: 0 0 8px #ff444488; }
+  .line.white   { color: #ccffcc; }
+
+  /* Nombre del follower — grande y épico */
+  .follower-name {
+    display: block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 28px;
+    color: #00ff41;
+    text-shadow: var(--glow);
+    letter-spacing: 4px;
+    margin: 6px 0 4px;
+    animation: namePulse 1s ease-in-out infinite;
+  }
+  @keyframes namePulse {
+    0%, 100% { text-shadow: 0 0 8px #00ff41, 0 0 20px #00ff4166; }
+    50%       { text-shadow: 0 0 16px #00ff41, 0 0 40px #00ff4199, 0 0 60px #00ff4133; }
+  }
+
+  /* Cursor parpadeante */
+  .cursor {
+    display: inline-block;
+    width: 8px; height: 14px;
+    background: var(--green);
+    box-shadow: var(--glow);
+    animation: cursorBlink 0.7s step-end infinite;
+    vertical-align: middle;
+    margin-left: 2px;
+  }
+  @keyframes cursorBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+  /* Barra de progreso "cracking" */
+  .crack-bar-wrap {
+    margin: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .crack-bar-bg {
+    flex: 1;
+    height: 8px;
+    background: #001a00;
+    border: 1px solid #00ff4133;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .crack-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00aa22, #00ff41);
+    box-shadow: 0 0 6px #00ff41;
+    transition: width 0.08s linear;
+    border-radius: 2px;
+  }
+  .crack-pct {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* Barra countdown inferior */
+  .countdown-bar {
+    height: 2px;
+    background: #001400;
+    position: relative;
+    overflow: hidden;
+  }
+  .countdown-fill {
+    position: absolute; top: 0; left: 0;
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #00ff41, #00aa22);
+    box-shadow: 0 0 6px #00ff41;
+    transform-origin: left;
+  }
+
+  /* Glitch ocasional en toda la ventana */
+  .glitch-layer {
+    position: absolute; inset: 0;
+    background: transparent;
+    z-index: 15;
+    pointer-events: none;
+    animation: globalGlitch 6s steps(1) infinite;
+    opacity: 0;
+  }
+  @keyframes globalGlitch {
+    0%, 88%, 90%, 92%, 100% { opacity: 0; transform: none; }
+    89% { opacity: 1; transform: translate(3px, 0); background: #00ff4108; }
+    91% { opacity: 1; transform: translate(-2px, 1px); background: #00ff4105; }
+  }
+
+</style>
+</head>
+<body>
+
+<div id="alerta">
+  <div class="terminal">
+    <div class="glitch-layer"></div>
+
+    <!-- Barra título -->
+    <div class="title-bar">
+      <div class="title-dots">
+        <div class="dot red"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
+      </div>
+      <span class="title-text">bash — root@stream:~</span>
+      <span class="title-right" id="termClock">00:00:00</span>
+    </div>
+
+    <!-- Cuerpo -->
+    <div class="term-body" id="termBody">
+      <span class="cursor" id="cursor"></span>
+    </div>
+
+    <!-- Countdown -->
+    <div class="countdown-bar">
+      <div class="countdown-fill" id="cdFill"></div>
+    </div>
+  </div>
+</div>
+
+<audio id="alertSound" src="sound.mp3"></audio>
+
+<script>
+  // ── Utilidades de tipado ──────────────────────────────────
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function typeLine(el, text, cls = '', delay = 38) {
+    const span = document.createElement('span');
+    span.className = 'line ' + cls;
+    el.insertBefore(span, document.getElementById('cursor'));
+    for (const ch of text) {
+      span.textContent += ch;
+      await sleep(delay + Math.random() * 18);
+    }
+    el.insertBefore(document.createElement('br'), document.getElementById('cursor'));
+  }
+
+  function addLine(el, text, cls = '') {
+    const span = document.createElement('span');
+    span.className = 'line ' + cls;
+    span.textContent = text;
+    el.insertBefore(span, document.getElementById('cursor'));
+    el.insertBefore(document.createElement('br'), document.getElementById('cursor'));
+  }
+
+  async function animateCrackBar(el, body) {
+    const wrap = document.createElement('div');
+    wrap.className = 'crack-bar-wrap';
+    const bg   = document.createElement('div'); bg.className = 'crack-bar-bg';
+    const fill = document.createElement('div'); fill.className = 'crack-bar-fill';
+    const pct  = document.createElement('span'); pct.className = 'crack-pct'; pct.textContent = '0%';
+    bg.appendChild(fill); wrap.appendChild(bg); wrap.appendChild(pct);
+    body.insertBefore(wrap, document.getElementById('cursor'));
+    body.insertBefore(document.createElement('br'), document.getElementById('cursor'));
+
+    for (let i = 0; i <= 100; i += Math.floor(Math.random() * 7) + 2) {
+      const v = Math.min(i, 100);
+      fill.style.width = v + '%';
+      pct.textContent  = v + '%';
+      await sleep(40 + Math.random() * 30);
+    }
+    fill.style.width = '100%';
+    pct.textContent  = '100%';
+  }
+
+  // ── Reloj en título ──────────────────────────────────────
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('termClock').textContent =
+      [now.getHours(), now.getMinutes(), now.getSeconds()]
+        .map(n => String(n).padStart(2,'0')).join(':');
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // ── Secuencia principal ──────────────────────────────────
+  async function mostrarAlerta(nombre) {
+    const alerta = document.getElementById('alerta');
+    const body   = document.getElementById('termBody');
+    const cdFill = document.getElementById('cdFill');
+    const sonido = document.getElementById('alertSound');
+
+    // Reset
+    alerta.classList.remove('hiding', 'visible');
+    body.innerHTML = '<span class="cursor" id="cursor"></span>';
+    cdFill.style.animation = 'none';
+    cdFill.getBoundingClientRect();
+
+    alerta.style.display = 'block';
+    requestAnimationFrame(() => alerta.classList.add('visible'));
+
+    sonido.currentTime = 0;
+    sonido.play().catch(() => {});
+
+    // ── Secuencia de texto ──
+    await sleep(120);
+    await typeLine(body, '$ ./stream_monitor.sh --watch live', 'dim', 30);
+    await sleep(200);
+    addLine(body, '[INFO] Monitoring incoming connections...', 'dim');
+    await sleep(500);
+    addLine(body, '[WARN] Anomalous traffic detected on port 1984', 'warn');
+    await sleep(300);
+    await typeLine(body, '$ traceroute --source unknown', 'dim', 28);
+    await sleep(250);
+    addLine(body, 'Tracing route... 3 hops... 1 hop... DIRECT HIT', 'dim');
+    await sleep(400);
+    addLine(body, '[ALERT] !! INTRUSION ATTEMPT DETECTED !!', 'red');
+    await sleep(300);
+    addLine(body, 'Cracking stream permissions...', 'white');
+    await animateCrackBar(null, body);
+    await sleep(200);
+    addLine(body, '[SUCCESS] Firewall bypassed. Access granted.', 'success');
+    await sleep(300);
+    addLine(body, 'Escalating privileges... FOLLOWER role acquired', 'warn');
+    await sleep(400);
+    addLine(body, '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'dim');
+    await sleep(150);
+
+    // Nombre grande
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'follower-name';
+    nameSpan.textContent = '> ' + nombre;
+    body.insertBefore(nameSpan, document.getElementById('cursor'));
+    body.insertBefore(document.createElement('br'), document.getElementById('cursor'));
+
+    await sleep(200);
+    addLine(body, 'ha hackeado el directo y obtenido permisos de SEGUIDOR', 'bright');
+    await sleep(100);
+    addLine(body, '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'dim');
+
+    // Countdown
+    cdFill.style.animation = 'cdFillAnim 5s linear forwards';
+
+    // Ocultar tras 5s
+    setTimeout(() => {
+      alerta.classList.add('hiding');
+      setTimeout(() => {
+        alerta.style.display = 'none';
+        alerta.classList.remove('hiding');
+      }, 200);
+    }, 5000);
+  }
+
+  // Inyectar keyframe del countdown dinámicamente
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes cdFillAnim {
+      from { transform: scaleX(1); }
+      to   { transform: scaleX(0); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // ── WebSocket ────────────────────────────────────────────
+  const socket = new WebSocket('ws://localhost:8080');
+  socket.onopen    = () => console.log('WebSocket conectado');
+  socket.onerror   = err  => console.error('WebSocket error:', err);
+  socket.onmessage = evt  => mostrarAlerta(evt.data);
+
+  // setTimeout(() => mostrarAlerta('xX_H4ck3r_Xx'), 800); // DEBUG
+</script>
+</body>
+</html>

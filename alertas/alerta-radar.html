@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Alerta Radar</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green:  #00ff88;
+    --dim:    #00ff4422;
+    --mid:    #00ff4466;
+    --glow:   0 0 8px #00ff88, 0 0 20px #00ff8866;
+    --glow2:  0 0 4px #00ff88, 0 0 12px #00ff8844;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: transparent; overflow: hidden; width: 100vw; height: 100vh; }
+
+  #alerta {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+  }
+
+  .hud { position: relative; width: 380px; height: 380px; }
+
+  .hud-corner {
+    position: absolute;
+    width: 28px; height: 28px;
+    border-color: var(--green);
+    border-style: solid;
+    opacity: 0.9;
+    filter: drop-shadow(0 0 4px #00ff88);
+  }
+  .hud-corner.tl { top: 0; left: 0;    border-width: 2px 0 0 2px; }
+  .hud-corner.tr { top: 0; right: 0;   border-width: 2px 2px 0 0; }
+  .hud-corner.bl { bottom: 0; left: 0;  border-width: 0 0 2px 2px; }
+  .hud-corner.br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+
+  .hud-tick { position: absolute; background: var(--green); opacity: 0.4; }
+  .hud-tick.top    { top: 0;    left: 50%; transform: translateX(-50%); width: 1px; height: 12px; }
+  .hud-tick.bottom { bottom: 0; left: 50%; transform: translateX(-50%); width: 1px; height: 12px; }
+  .hud-tick.left   { left: 0;   top: 50%;  transform: translateY(-50%); height: 1px; width: 12px; }
+  .hud-tick.right  { right: 0;  top: 50%;  transform: translateY(-50%); height: 1px; width: 12px; }
+
+  .hud-label {
+    position: absolute;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--green);
+    opacity: 0.45;
+    letter-spacing: 1px;
+  }
+  .hud-label.top-left     { top: 6px;    left: 36px; }
+  .hud-label.top-right    { top: 6px;    right: 36px; }
+  .hud-label.bottom-left  { bottom: 6px; left: 36px; }
+  .hud-label.bottom-right { bottom: 6px; right: 36px; }
+
+  .radar-wrap {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px; height: 300px;
+  }
+
+  .radar-bg {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, #001a0d 0%, #000a05 60%, #000000 100%);
+    border: 1.5px solid var(--green);
+    box-shadow: 0 0 20px #00ff8833, inset 0 0 40px #00ff4411;
+    overflow: hidden;
+  }
+
+  .ring {
+    position: absolute; border-radius: 50%;
+    border: 1px solid var(--mid);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .ring-1 { width: 25%;  height: 25%; }
+  .ring-2 { width: 50%;  height: 50%; }
+  .ring-3 { width: 75%;  height: 75%; }
+
+  .crosshair-h, .crosshair-v {
+    position: absolute; background: var(--mid);
+    top: 50%; left: 50%;
+  }
+  .crosshair-h { width: 100%; height: 1px; transform: translate(-50%, -50%); }
+  .crosshair-v { height: 100%; width: 1px; transform: translate(-50%, -50%); }
+
+  .sweep {
+    position: absolute; inset: 0; border-radius: 50%;
+    animation: rotateSweep 3s linear infinite;
+    transform-origin: center;
+  }
+  .sweep::before {
+    content: '';
+    position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(
+      from -5deg,
+      transparent 0deg,
+      #00ff8806 30deg,
+      #00ff8828 60deg,
+      #00ff8850 80deg,
+      #00ff8820 90deg,
+      transparent 91deg
+    );
+  }
+
+  .sweep-line {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 50%; height: 1.5px;
+    background: linear-gradient(90deg, transparent, var(--green));
+    transform-origin: left center;
+    transform: translateY(-50%);
+    box-shadow: 0 0 6px var(--green);
+    animation: rotateSweep 3s linear infinite;
+  }
+
+  @keyframes rotateSweep {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .center-dot {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: var(--glow); z-index: 5;
+  }
+
+  /* ── BLIP ── */
+  .blip-wrap {
+    position: absolute; z-index: 10;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .blip-wrap.visible { opacity: 1; }
+
+  .blip {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 6px #fff, 0 0 14px var(--green), 0 0 28px var(--green);
+    animation: blipPulse 0.8s ease-in-out infinite;
+    position: relative; z-index: 2;
+  }
+  @keyframes blipPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%       { transform: scale(1.6); opacity: 0.7; }
+  }
+
+  .blip-ring {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%; border: 1px solid var(--green);
+    animation: blipRing 1.6s ease-out infinite;
+    pointer-events: none;
+  }
+  .blip-ring:nth-child(2) { animation-delay: 0.55s; }
+  .blip-ring:nth-child(3) { animation-delay: 1.1s; }
+  @keyframes blipRing {
+    0%   { width: 10px; height: 10px; opacity: 0.9; }
+    100% { width: 70px; height: 70px; opacity: 0; }
+  }
+
+  .blip-label {
+    position: absolute; left: 16px; top: -8px;
+    white-space: nowrap;
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    color: var(--green); text-shadow: var(--glow2);
+    background: #00060288; padding: 3px 8px;
+    border-left: 1px solid var(--green);
+    opacity: 0; transform: translateX(-8px);
+    transition: opacity 0.4s 0.2s, transform 0.4s 0.2s;
+  }
+  .blip-wrap.visible .blip-label { opacity: 1; transform: translateX(0); }
+
+  .blip-label .tag {
+    display: block; font-size: 8px; color: #00ff8877;
+    letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px;
+  }
+  .blip-label .name {
+    font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 700;
+    color: #fff; text-shadow: 0 0 8px var(--green), 0 0 20px var(--green);
+    letter-spacing: 1px;
+  }
+
+  /* ── HUD bottom ── */
+  .hud-bottom {
+    position: absolute; bottom: -44px; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center; padding: 0 8px;
+  }
+  .hud-stat {
+    font-family: 'Share Tech Mono', monospace; font-size: 9px;
+    color: var(--green); opacity: 0.45; letter-spacing: 1px; text-transform: uppercase;
+  }
+  .hud-status {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    color: var(--green); letter-spacing: 2px; text-transform: uppercase;
+    text-shadow: var(--glow2); animation: statusBlink 1s step-end infinite;
+  }
+  @keyframes statusBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  /* ── Countdown ── */
+  .countdown-bar {
+    position: absolute; bottom: -52px; left: 0; right: 0;
+    height: 1px; background: #00ff4418;
+  }
+  .countdown-fill {
+    height: 100%; background: var(--green);
+    box-shadow: var(--glow2); transform-origin: left;
+    animation: cdFill 5s linear forwards;
+  }
+  @keyframes cdFill { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+  /* ── Glitch overlay ── */
+  .glitch-overlay {
+    position: absolute; inset: 0; border-radius: 50%;
+    pointer-events: none; z-index: 20; opacity: 0;
+    background: linear-gradient(transparent 48%, #00ff8810 49%, transparent 50%);
+    animation: glitchFlash 5s steps(1) infinite;
+  }
+  @keyframes glitchFlash { 0%, 90%, 92%, 100% { opacity: 0; } 91% { opacity: 1; } }
+
+  /* ── Entrada / salida ── */
+  #alerta.visible { animation: hudReveal 0.45s cubic-bezier(0.22,1,0.36,1) forwards; }
+  #alerta.hiding  { animation: hudHide   0.4s ease-in forwards; }
+  @keyframes hudReveal {
+    0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.8); }
+    100% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  }
+  @keyframes hudHide {
+    0%   { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(0.8); }
+  }
+</style>
+</head>
+<body>
+
+<div id="alerta">
+  <div class="hud">
+    <div class="hud-corner tl"></div>
+    <div class="hud-corner tr"></div>
+    <div class="hud-corner bl"></div>
+    <div class="hud-corner br"></div>
+    <div class="hud-tick top"></div>
+    <div class="hud-tick bottom"></div>
+    <div class="hud-tick left"></div>
+    <div class="hud-tick right"></div>
+    <div class="hud-label top-left">RNG:034°</div>
+    <div class="hud-label top-right">ALT:220m</div>
+    <div class="hud-label bottom-left">SIG:-42dB</div>
+    <div class="hud-label bottom-right" id="tsLabel">TS:--:--</div>
+
+    <div class="radar-wrap">
+      <div class="radar-bg">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="ring ring-3"></div>
+        <div class="crosshair-h"></div>
+        <div class="crosshair-v"></div>
+        <div class="sweep"></div>
+        <div class="glitch-overlay"></div>
+
+        <div class="blip-wrap" id="blipWrap">
+          <div class="blip-ring"></div>
+          <div class="blip-ring"></div>
+          <div class="blip-ring"></div>
+          <div class="blip"></div>
+          <div class="blip-label">
+            <span class="tag">new follower</span>
+            <span class="name" id="nombreSeguidor">—</span>
+          </div>
+        </div>
+
+        <div class="center-dot"></div>
+      </div>
+      <div class="sweep-line"></div>
+    </div>
+
+    <div class="hud-bottom">
+      <span class="hud-stat">SCAN:360°</span>
+      <span class="hud-status" id="hudStatus">SCANNING...</span>
+      <span class="hud-stat">RDR:ACTIVE</span>
+    </div>
+    <div class="countdown-bar">
+      <div class="countdown-fill" id="cdFill"></div>
+    </div>
+  </div>
+</div>
+
+<audio id="alertSound" src="sound.mp3"></audio>
+
+<script>
+  const BLIP_POSITIONS = [
+    { top: '22%', left: '58%' },
+    { top: '55%', left: '66%' },
+    { top: '62%', left: '30%' },
+    { top: '25%', left: '26%' },
+    { top: '40%', left: '60%' },
+  ];
+
+  function mostrarAlerta(nombre) {
+    const alerta  = document.getElementById('alerta');
+    const nameEl  = document.getElementById('nombreSeguidor');
+    const blip    = document.getElementById('blipWrap');
+    const status  = document.getElementById('hudStatus');
+    const cdFill  = document.getElementById('cdFill');
+    const tsLabel = document.getElementById('tsLabel');
+    const sonido  = document.getElementById('alertSound');
+
+    const now = new Date();
+    tsLabel.textContent = `TS:${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+    alerta.classList.remove('hiding', 'visible');
+    blip.classList.remove('visible');
+    cdFill.style.animation = 'none';
+    cdFill.getBoundingClientRect();
+    cdFill.style.animation = '';
+
+    const pos = BLIP_POSITIONS[Math.floor(Math.random() * BLIP_POSITIONS.length)];
+    blip.style.top  = pos.top;
+    blip.style.left = pos.left;
+    nameEl.textContent = nombre;
+
+    alerta.style.display = 'block';
+    requestAnimationFrame(() => {
+      alerta.classList.add('visible');
+      status.textContent = 'ACQUIRING...';
+      setTimeout(() => {
+        status.textContent = 'TARGET LOCKED';
+        blip.classList.add('visible');
+      }, 900);
+    });
+
+    sonido.currentTime = 0;
+    sonido.play().catch(err => console.error('Audio:', err));
+
+    setTimeout(() => {
+      status.textContent = 'SIGNAL LOST';
+      blip.classList.remove('visible');
+      setTimeout(() => {
+        alerta.classList.add('hiding');
+        alerta.classList.remove('visible');
+        setTimeout(() => {
+          alerta.style.display = 'none';
+          alerta.classList.remove('hiding');
+          status.textContent = 'SCANNING...';
+        }, 400);
+      }, 600);
+    }, 5000);
+  }
+
+  const socket = new WebSocket('ws://localhost:8080');
+  socket.onopen    = () => console.log('WebSocket conectado');
+  socket.onerror   = err  => console.error('WebSocket error:', err);
+  socket.onmessage = evt  => mostrarAlerta(evt.data);
+
+  // setTimeout(() => mostrarAlerta('NombreDemo'), 800); // DEBUG
+</script>
+</body>
+</html>
