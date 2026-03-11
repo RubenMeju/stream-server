@@ -10,7 +10,7 @@ const app = express();
 
 // =============================
 // Servir archivos estáticos (HTML/JS/CSS)
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "../public")));
 app.use(bodyParser.json());
 
 // =============================
