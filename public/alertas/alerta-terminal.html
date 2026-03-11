@@ -304,7 +304,10 @@
       //////////////////////////////////////////////////////////////////
 
       function initSocket() {
-        const socket = new WebSocket("ws://localhost:8080");
+        // Después (producción Render):
+        const loc = window.location;
+        const wsProtocol = loc.protocol === "https:" ? "wss" : "ws";
+        const socket = new WebSocket(`${wsProtocol}://${loc.host}/`);
 
         socket.onopen = () => console.log("WebSocket conectado");
 

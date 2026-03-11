@@ -1,144 +1,125 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-<meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
 
-<style>
+    <style>
+      :root {
+        --green: #00ff41;
+        --dim: #00ff4144;
+      }
 
-:root{
-  --green:#00ff41;
-  --dim:#00ff4144;
-}
+      body {
+        background: transparent;
+        margin: 0;
+        font-family: monospace;
+        color: var(--green);
+      }
 
-body{
-  background:transparent;
-  margin:0;
-  font-family:monospace;
-  color:var(--green);
-}
+      /* Caja principal */
 
-/* Caja principal */
+      #box {
+        width: 320px;
+        padding: 14px;
+        border: 1px solid var(--dim);
+        background: #00000066;
+        box-shadow:
+          0 0 10px #00ff4122,
+          inset 0 0 20px #000;
+      }
 
-#box{
-  width:320px;
-  padding:14px;
-  border:1px solid var(--dim);
-  background:#00000066;
-  box-shadow:
-    0 0 10px #00ff4122,
-    inset 0 0 20px #000;
-}
+      /* Título */
 
-/* Título */
+      #title {
+        font-size: 12px;
+        letter-spacing: 2px;
+        margin-bottom: 6px;
+        color: #00ff4188;
+      }
 
-#title{
-  font-size:12px;
-  letter-spacing:2px;
-  margin-bottom:6px;
-  color:#00ff4188;
-}
+      /* Números */
 
-/* Números */
+      #numbers {
+        font-size: 18px;
+        margin-bottom: 8px;
+        text-shadow: 0 0 6px #00ff41;
+      }
 
-#numbers{
-  font-size:18px;
-  margin-bottom:8px;
-  text-shadow:0 0 6px #00ff41;
-}
+      /* Barra */
 
-/* Barra */
+      .bar {
+        height: 10px;
+        background: #001a00;
+        border: 1px solid var(--dim);
+        overflow: hidden;
+      }
 
-.bar{
-  height:10px;
-  background:#001a00;
-  border:1px solid var(--dim);
-  overflow:hidden;
-}
+      .fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #00aa22, #00ff41);
+        box-shadow: 0 0 8px #00ff41;
+        transition: width 0.5s ease;
+      }
 
-.fill{
-  height:100%;
-  width:0%;
-  background:linear-gradient(90deg,#00aa22,#00ff41);
-  box-shadow:0 0 8px #00ff41;
-  transition:width 0.5s ease;
-}
+      /* porcentaje */
 
-/* porcentaje */
+      #pct {
+        margin-top: 6px;
+        font-size: 12px;
+        color: #00ff4199;
+      }
+    </style>
+  </head>
 
-#pct{
-  margin-top:6px;
-  font-size:12px;
-  color:#00ff4199;
-}
+  <body>
+    <div id="box">
+      <div id="title">FOLLOWER_GOAL.exe</div>
 
-</style>
-</head>
+      <div id="numbers">0 / 500</div>
 
-<body>
+      <div class="bar">
+        <div class="fill" id="fill"></div>
+      </div>
 
-<div id="box">
+      <div id="pct">0%</div>
+    </div>
 
-<div id="title">FOLLOWER_GOAL.exe</div>
+    <script>
+      let socket;
 
-<div id="numbers">0 / 500</div>
+      function connect() {
+        const loc = window.location;
+        const wsProtocol = loc.protocol === "https:" ? "wss" : "ws";
+        const socket = new WebSocket(`${wsProtocol}://${loc.host}/`);
 
-<div class="bar">
-<div class="fill" id="fill"></div>
-</div>
+        socket.onopen = () => {
+          console.log("overlay conectado");
+        };
 
-<div id="pct">0%</div>
+        socket.onmessage = (evt) => {
+          const data = JSON.parse(evt.data);
 
-</div>
+          if (data.type === "goal") {
+            const pct = Math.min((data.current / data.goal) * 100, 100);
 
-<script>
+            document.getElementById("numbers").textContent =
+              data.current + " / " + data.goal;
 
-let socket;
+            document.getElementById("fill").style.width = pct + "%";
 
-function connect(){
+            document.getElementById("pct").textContent = pct.toFixed(1) + "%";
+          }
+        };
 
-  socket = new WebSocket("ws://localhost:8080");
+        socket.onclose = () => {
+          console.log("overlay desconectado");
 
-  socket.onopen = () => {
-    console.log("overlay conectado");
-  };
+          setTimeout(connect, 3000);
+        };
+      }
 
-  socket.onmessage = (evt)=>{
-
-    const data = JSON.parse(evt.data);
-
-    if(data.type === "goal"){
-
-      const pct = Math.min(
-        (data.current / data.goal) * 100,
-        100
-      );
-
-      document.getElementById("numbers").textContent =
-        data.current + " / " + data.goal;
-
-      document.getElementById("fill").style.width =
-        pct + "%";
-
-      document.getElementById("pct").textContent =
-        pct.toFixed(1) + "%";
-
-    }
-
-  };
-
-  socket.onclose = () => {
-
-    console.log("overlay desconectado");
-
-    setTimeout(connect,3000);
-
-  };
-
-}
-
-connect();
-
-</script>
-
-</body>
+      connect();
+    </script>
+  </body>
 </html>
