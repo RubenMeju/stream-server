@@ -1,32 +1,33 @@
+// backend/server.js
 const express = require('express');
 const bodyParser = require('body-parser');
 const WebSocket = require('ws');
-const readline = require('readline');
 const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
 
 const app = express();
-// Servir archivos estáticos de la carpeta public
-app.use(express.static('frontend'));
+
+// =============================
+// Servir archivos estáticos (HTML/JS/CSS)
+app.use(express.static(path.join(__dirname, '../public')));
 app.use(bodyParser.json());
 
 // =============================
-// CONFIG TWITCH
+// Configuración Twitch desde .env
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const CHANNEL_LOGIN = process.env.CHANNEL_LOGIN || 'mejudev';
+const FOLLOWER_GOAL = parseInt(process.env.FOLLOWER_GOAL) || 500;
+
 // =============================
-const CLIENT_ID = "jcgvtr09bln474qdy7hhdw9x595wc1";          // Poner tu CLIENT_ID
-const CLIENT_SECRET = "oc16hb1c3v359syyzg2xjq3v3cetz5";  // Poner tu CLIENT_SECRET
-const CHANNEL_LOGIN = "mejudev";
-const FOLLOWER_GOAL = 500;
-
-// Tu subdominio fijo de ngrok
-const NGROK_URL = "https://synoetic-gregorio-unenviously.ngrok-free.dev";
-
+// Estado del servidor
 let followerCount = 0;
 let broadcasterId = null;
 let appToken = null;
 
 // =============================
-// LOAD / SAVE FOLLOWERS
-// =============================
+// Load / Save followers
 function loadFollowers() {
   try {
     const data = JSON.parse(fs.readFileSync("followers.json"));
@@ -41,9 +42,7 @@ function saveFollowers() {
 }
 
 // =============================
-// TWITCH API FUNCTIONS
-// =============================
-// Usa el fetch global de Node directamente
+// Twitch API
 async function getAppToken() {
   const res = await fetch("https://id.twitch.tv/oauth2/token", {
     method: "POST",
@@ -60,31 +59,31 @@ async function getAppToken() {
 
 async function getBroadcasterId(token) {
   const res = await fetch(`https://api.twitch.tv/helix/users?login=${CHANNEL_LOGIN}`, {
-    headers: {
-      "Client-ID": CLIENT_ID,
-      "Authorization": "Bearer " + token
-    }
+    headers: { "Client-ID": CLIENT_ID, "Authorization": `Bearer ${token}` }
   });
   const data = await res.json();
   return data.data[0]?.id;
 }
 
-async function getFollowers(token) {
-  if (!broadcasterId) return followerCount;
-  const res = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${broadcasterId}`, {
-    headers: {
-      "Client-ID": CLIENT_ID,
-      "Authorization": "Bearer " + token
-    }
-  });
-  const data = await res.json();
-  return data.total ?? followerCount;
-}
+// =============================
+// HTTP Server
+const PORT = process.env.PORT || 3000;
+const server = app.listen(PORT, async () => {
+  console.log(`Servidor HTTP corriendo en puerto ${PORT}`);
+  loadFollowers();
+  try {
+    appToken = await getAppToken();
+    broadcasterId = await getBroadcasterId(appToken);
+    console.log(`✅ Conexión a Twitch exitosa. Followers actuales: ${followerCount}`);
+  } catch (err) {
+    console.log("⚠️ No se pudo conectar a Twitch, modo test activo.");
+    console.log(err.message);
+  }
+});
 
 // =============================
-// WEBSOCKET
-// =============================
-const wss = new WebSocket.Server({ port: 8080 });
+// WebSocket
+const wss = new WebSocket.Server({ server });
 
 function broadcast(data) {
   const msg = JSON.stringify(data);
@@ -99,13 +98,11 @@ wss.on('connection', ws => {
 });
 
 // =============================
-// WEBHOOK TWITCH
-// =============================
+// Webhook Twitch
 app.post('/webhook', (req, res) => {
   const data = req.body;
   if (data.subscription?.type === 'channel.follow') {
     const follower = data.event.user_name;
-    console.log("Nuevo seguidor:", follower);
     followerCount++;
     saveFollowers();
     broadcast({ type: "follow", name: follower });
@@ -115,50 +112,12 @@ app.post('/webhook', (req, res) => {
 });
 
 // =============================
-// HTTP SERVER
-// =============================
-app.listen(80, () => {
-  console.log("Servidor HTTP puerto 80");
-  console.log(`URL pública de Twitch/Webhooks: ${NGROK_URL}`);
+// Endpoint de prueba
+app.get('/test-follow', (req, res) => {
+  const follower = req.query.name || `TestUser${Math.floor(Math.random()*1000)}`;
+  followerCount++;
+  saveFollowers();
+  broadcast({ type: "follow", name: follower });
+  broadcast({ type: "goal", current: followerCount, goal: FOLLOWER_GOAL });
+  res.send(`Simulado seguidor: ${follower}`);
 });
-
-// =============================
-// MODO TEST / READLINE
-// =============================
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-
-function modoTest(input) {
-  if (input.startsWith("follow ")) {
-    const follower = input.replace("follow ", "").trim();
-    followerCount++;
-    saveFollowers();
-    broadcast({ type: "follow", name: follower });
-    broadcast({ type: "goal", current: followerCount, goal: FOLLOWER_GOAL });
-  }
-}
-
-rl.on('line', (input) => modoTest(input));
-
-// =============================
-// INICIO
-// =============================
-async function init() {
-  loadFollowers();
-  console.log("Followers guardados:", followerCount);
-
-  try {
-    appToken = await getAppToken();
-    broadcasterId = await getBroadcasterId(appToken);
-    const realFollowers = await getFollowers(appToken);
-    followerCount = realFollowers;
-    saveFollowers();
-    console.log("✅ Conexión a Twitch exitosa. Followers reales:", followerCount);
-  } catch (err) {
-    console.log("⚠️ No se pudo conectar a Twitch, modo test activo.");
-    console.log(err.message);
-  }
-
-  console.log("\nServidor listo. Esperando alertas de seguidores...");
-}
-
-init();

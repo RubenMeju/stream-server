@@ -5,7 +5,7 @@ node_modules/
 *.log
 
 # Configuración de entorno
-.env
+.env.local
 
 # Archivos de sistema
 .DS_Store
