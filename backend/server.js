@@ -1,23 +1,23 @@
 // backend/server.js
-const express = require('express');
-const bodyParser = require('body-parser');
-const WebSocket = require('ws');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
+const express = require("express");
+const bodyParser = require("body-parser");
+const WebSocket = require("ws");
+const fs = require("fs");
+const path = require("path");
+require("dotenv").config();
 
 const app = express();
 
 // =============================
 // Servir archivos estáticos (HTML/JS/CSS)
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(bodyParser.json());
 
 // =============================
 // Configuración Twitch desde .env
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const CHANNEL_LOGIN = process.env.CHANNEL_LOGIN || 'mejudev';
+const CHANNEL_LOGIN = process.env.CHANNEL_LOGIN || "mejudev";
 const FOLLOWER_GOAL = parseInt(process.env.FOLLOWER_GOAL) || 500;
 
 // =============================
@@ -38,7 +38,10 @@ function loadFollowers() {
 }
 
 function saveFollowers() {
-  fs.writeFileSync("followers.json", JSON.stringify({ count: followerCount }, null, 2));
+  fs.writeFileSync(
+    "followers.json",
+    JSON.stringify({ count: followerCount }, null, 2),
+  );
 }
 
 // =============================
@@ -50,17 +53,20 @@ async function getAppToken() {
     body: new URLSearchParams({
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
-      grant_type: "client_credentials"
-    })
+      grant_type: "client_credentials",
+    }),
   });
   const data = await res.json();
   return data.access_token;
 }
 
 async function getBroadcasterId(token) {
-  const res = await fetch(`https://api.twitch.tv/helix/users?login=${CHANNEL_LOGIN}`, {
-    headers: { "Client-ID": CLIENT_ID, "Authorization": `Bearer ${token}` }
-  });
+  const res = await fetch(
+    `https://api.twitch.tv/helix/users?login=${CHANNEL_LOGIN}`,
+    {
+      headers: { "Client-ID": CLIENT_ID, Authorization: `Bearer ${token}` },
+    },
+  );
   const data = await res.json();
   return data.data[0]?.id;
 }
@@ -74,7 +80,9 @@ const server = app.listen(PORT, async () => {
   try {
     appToken = await getAppToken();
     broadcasterId = await getBroadcasterId(appToken);
-    console.log(`✅ Conexión a Twitch exitosa. Followers actuales: ${followerCount}`);
+    console.log(
+      `✅ Conexión a Twitch exitosa. Followers actuales: ${followerCount}`,
+    );
   } catch (err) {
     console.log("⚠️ No se pudo conectar a Twitch, modo test activo.");
     console.log(err.message);
@@ -87,21 +95,27 @@ const wss = new WebSocket.Server({ server });
 
 function broadcast(data) {
   const msg = JSON.stringify(data);
-  wss.clients.forEach(client => {
+  wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) client.send(msg);
   });
 }
 
-wss.on('connection', ws => {
+wss.on("connection", (ws) => {
   console.log("Cliente WebSocket conectado");
-  ws.send(JSON.stringify({ type: "goal", current: followerCount, goal: FOLLOWER_GOAL }));
+  ws.send(
+    JSON.stringify({
+      type: "goal",
+      current: followerCount,
+      goal: FOLLOWER_GOAL,
+    }),
+  );
 });
 
 // =============================
 // Webhook Twitch
-app.post('/webhook', (req, res) => {
+app.post("/webhook", (req, res) => {
   const data = req.body;
-  if (data.subscription?.type === 'channel.follow') {
+  if (data.subscription?.type === "channel.follow") {
     const follower = data.event.user_name;
     followerCount++;
     saveFollowers();
@@ -113,8 +127,9 @@ app.post('/webhook', (req, res) => {
 
 // =============================
 // Endpoint de prueba
-app.get('/test-follow', (req, res) => {
-  const follower = req.query.name || `TestUser${Math.floor(Math.random()*1000)}`;
+app.get("/test-follow", (req, res) => {
+  const follower =
+    req.query.name || `TestUser${Math.floor(Math.random() * 1000)}`;
   followerCount++;
   saveFollowers();
   broadcast({ type: "follow", name: follower });
