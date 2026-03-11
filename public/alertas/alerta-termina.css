@@ -1,0 +1,272 @@
+:root {
+  --green: #00ff41;
+  --dim: #00ff4155;
+  --dark: #0a0f0a;
+  --glow: 0 0 8px #00ff41, 0 0 20px #00ff4166;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  background: transparent;
+  overflow: hidden;
+} /* ══ WRAPPER ══ */
+#alerta {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  width: 620px;
+}
+#alerta.visible {
+  animation: termReveal 0.2s steps(1) forwards;
+}
+#alerta.hiding {
+  animation: termHide 0.15s steps(1) forwards;
+}
+@keyframes termReveal {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes termHide {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+} /* ══ VENTANA TERMINAL ══ */
+.terminal {
+  background: #0c0f0c;
+  border: 1px solid #00ff4133;
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px #00ff4111,
+    0 0 30px #00ff4122,
+    0 0 80px #00ff410d,
+    inset 0 0 60px #00000066;
+  overflow: hidden;
+  position: relative;
+} /* Scanlines */
+.terminal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 255, 65, 0.012) 3px,
+    rgba(0, 255, 65, 0.012) 4px
+  );
+  pointer-events: none;
+  z-index: 20;
+} /* ── Barra de título ── */
+.title-bar {
+  background: #111811;
+  border-bottom: 1px solid #00ff4122;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+.title-dots {
+  display: flex;
+  gap: 6px;
+}
+.dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+.dot.red {
+  background: #ff5f57;
+  box-shadow: 0 0 4px #ff5f5788;
+}
+.dot.yellow {
+  background: #febc2e;
+  box-shadow: 0 0 4px #febc2e88;
+}
+.dot.green {
+  background: #28c840;
+  box-shadow: 0 0 4px #28c84088;
+}
+.title-text {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 11px;
+  color: #00ff4177;
+  letter-spacing: 2px;
+}
+.title-right {
+  margin-left: auto;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 9px;
+  color: #00ff4144;
+  letter-spacing: 1px;
+} /* ── Cuerpo terminal ── */
+.term-body {
+  padding: 16px 20px 20px;
+  min-height: 220px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 13px;
+  color: var(--green);
+  line-height: 1.7;
+  position: relative;
+}
+.line {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.line.dim {
+  color: #00ff4155;
+}
+.line.bright {
+  color: #00ff41;
+  text-shadow: var(--glow);
+}
+.line.warn {
+  color: #ffb800;
+  text-shadow: 0 0 8px #ffb80088;
+}
+.line.success {
+  color: #00ff41;
+  text-shadow: var(--glow);
+  font-weight: bold;
+}
+.line.red {
+  color: #ff4444;
+  text-shadow: 0 0 8px #ff444488;
+}
+.line.white {
+  color: #ccffcc;
+} /* Nombre del follower — grande y épico */
+.follower-name {
+  display: block;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 28px;
+  color: #00ff41;
+  text-shadow: var(--glow);
+  letter-spacing: 4px;
+  margin: 6px 0 4px;
+  animation: namePulse 1s ease-in-out infinite;
+}
+@keyframes namePulse {
+  0%,
+  100% {
+    text-shadow:
+      0 0 8px #00ff41,
+      0 0 20px #00ff4166;
+  }
+  50% {
+    text-shadow:
+      0 0 16px #00ff41,
+      0 0 40px #00ff4199,
+      0 0 60px #00ff4133;
+  }
+} /* Cursor parpadeante */
+.cursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: var(--green);
+  box-shadow: var(--glow);
+  animation: cursorBlink 0.7s step-end infinite;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+@keyframes cursorBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+} /* Barra de progreso "cracking" */
+.crack-bar-wrap {
+  margin: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.crack-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: #001a00;
+  border: 1px solid #00ff4133;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.crack-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #00aa22, #00ff41);
+  box-shadow: 0 0 6px #00ff41;
+  transition: width 0.08s linear;
+  border-radius: 2px;
+}
+.crack-pct {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 11px;
+  color: var(--green);
+  min-width: 36px;
+  text-align: right;
+} /* Barra countdown inferior */
+.countdown-bar {
+  height: 2px;
+  background: #001400;
+  position: relative;
+  overflow: hidden;
+}
+.countdown-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #00ff41, #00aa22);
+  box-shadow: 0 0 6px #00ff41;
+  transform-origin: left;
+} /* Glitch ocasional en toda la ventana */
+.glitch-layer {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  z-index: 15;
+  pointer-events: none;
+  animation: globalGlitch 6s steps(1) infinite;
+  opacity: 0;
+}
+@keyframes globalGlitch {
+  0%,
+  88%,
+  90%,
+  92%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+  89% {
+    opacity: 1;
+    transform: translate(3px, 0);
+    background: #00ff4108;
+  }
+  91% {
+    opacity: 1;
+    transform: translate(-2px, 1px);
+    background: #00ff4105;
+  }
+}
