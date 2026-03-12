@@ -1,228 +1,54 @@
-// backend/server.js
 const express = require("express");
 const bodyParser = require("body-parser");
-const WebSocket = require("ws");
-const fs = require("fs").promises;
-const path = require("path");
-const crypto = require("crypto");
-require("dotenv").config();
+const { PORT, PUBLIC_PATH, CLIENT_ID, CHANNEL_LOGIN } = require("./config");
+const { setFollowers, getState } = require("./followers");
+const { getAppToken, getBroadcasterId } = require("./twitch");
+const { initWebSocket } = require("./websocket");
+const routes = require("./routes");
 
 const app = express();
 
-// =============================
-// Servir archivos estáticos
-app.use(express.static(path.join(__dirname, "../public")));
+app.use(express.static(PUBLIC_PATH));
 app.use(bodyParser.json());
+app.use(routes);
 
-// =============================
-// Configuración Twitch
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const CHANNEL_LOGIN = process.env.CHANNEL_LOGIN || "mejudev";
-const FOLLOWER_GOAL = parseInt(process.env.FOLLOWER_GOAL) || 500;
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "secret123";
-
-// =============================
-// Estado del servidor
-let followerCount = 0;
-let lastFollower = "--"; // <--- nuevo estado
-let broadcasterId = null;
-let appToken = null;
-let tokenExpiry = null;
-
-// =============================
-// Load / Save followers (refactorizado)
-async function loadFollowers() {
+async function loadFollowersFromTwitch() {
   try {
-    const data = JSON.parse(await fs.readFile("followers.json", "utf8"));
-    // Cargar contador y último seguidor desde el archivo
-    followerCount = data.count || 0;
-    lastFollower = data.lastFollower || "--";
-    console.log(
-      `Followers cargados: ${followerCount}, Último seguidor: ${lastFollower}`,
-    );
-  } catch (err) {
-    console.log(
-      "No se encontró followers.json, inicializando valores por defecto.",
-    );
-    followerCount = 0;
-    lastFollower = "--";
-  }
-}
+    const token = await getAppToken();
+    const broadcasterId = await getBroadcasterId(token, CHANNEL_LOGIN);
 
-async function saveFollowers() {
-  try {
-    await fs.writeFile(
-      "followers.json",
-      JSON.stringify({ count: followerCount, lastFollower }, null, 2),
-    );
-  } catch (err) {
-    console.error("Error guardando followers:", err.message);
-  }
-}
-
-// =============================
-// Twitch API
-async function getAppToken() {
-  if (appToken && tokenExpiry && Date.now() < tokenExpiry - 60000)
-    return appToken;
-  try {
-    const res = await fetch("https://id.twitch.tv/oauth2/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        grant_type: "client_credentials",
-      }),
-    });
-    if (!res.ok) throw new Error(`Error token Twitch: ${res.status}`);
-    const data = await res.json();
-    appToken = data.access_token;
-    tokenExpiry = Date.now() + data.expires_in * 1000;
-    return appToken;
-  } catch (err) {
-    console.error("Error obteniendo app token:", err.message);
-    throw err;
-  }
-}
-
-async function getBroadcasterId(token) {
-  try {
     const res = await fetch(
-      `https://api.twitch.tv/helix/users?login=${CHANNEL_LOGIN}`,
+      `https://api.twitch.tv/helix/users/follows?to_id=${broadcasterId}&first=1`,
       {
-        headers: { "Client-ID": CLIENT_ID, Authorization: `Bearer ${token}` },
+        headers: {
+          "Client-ID": CLIENT_ID,
+          Authorization: `Bearer ${token}`,
+        },
       },
     );
-    if (!res.ok) throw new Error(`Error Twitch API: ${res.status}`);
+
     const data = await res.json();
-    return data.data[0]?.id || null;
+
+    setFollowers(data.total || 0, data.data[0]?.from_name || "--");
+
+    const state = getState();
+    console.log(
+      `Followers cargados desde Twitch: ${state.followerCount}, Último: ${state.lastFollower}`,
+    );
+    console.log("✅ Conexión a Twitch exitosa.");
   } catch (err) {
-    console.error("Error obteniendo broadcasterId:", err.message);
-    return null;
+    console.error(
+      "⚠️ No se pudo conectar a Twitch, modo test activo:",
+      err.message,
+    );
   }
 }
 
-// =============================
-// WebSocket
-const PORT = process.env.PORT || 3000;
+// Cambia el puerto si ya está en uso
 const server = app.listen(PORT, async () => {
   console.log(`Servidor HTTP corriendo en puerto ${PORT}`);
-  await loadFollowers();
-  try {
-    appToken = await getAppToken();
-    broadcasterId = await getBroadcasterId(appToken);
-    console.log(
-      `✅ Conexión a Twitch exitosa. Followers actuales: ${followerCount}`,
-    );
-  } catch {
-    console.log("⚠️ No se pudo conectar a Twitch, modo test activo.");
-  }
+  await loadFollowersFromTwitch();
 });
 
-const wss = new WebSocket.Server({ server });
-
-function broadcast(data) {
-  const msg = JSON.stringify(data);
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) client.send(msg);
-  });
-}
-
-wss.on("connection", (ws) => {
-  console.log("Cliente WebSocket conectado");
-
-  // Enviar estado inicial de goal
-  ws.send(
-    JSON.stringify({
-      type: "goal",
-      current: followerCount,
-      goal: FOLLOWER_GOAL,
-      lastFollower,
-    }),
-  );
-
-  // Enviar último seguidor como evento 'follow' para alerta terminal
-  if (lastFollower && lastFollower !== "--") {
-    ws.send(
-      JSON.stringify({
-        type: "follow",
-        name: lastFollower,
-      }),
-    );
-  }
-});
-
-// =============================
-// Seguridad Webhook
-function verifyTwitchSignature(req) {
-  const messageId = req.headers["twitch-eventsub-message-id"];
-  const timestamp = req.headers["twitch-eventsub-message-timestamp"];
-  const signature = req.headers["twitch-eventsub-message-signature"];
-  if (!messageId || !timestamp || !signature) return false;
-  const body = JSON.stringify(req.body);
-  const hmacMessage = messageId + timestamp + body;
-  const hash = crypto
-    .createHmac("sha256", WEBHOOK_SECRET)
-    .update(hmacMessage)
-    .digest("hex");
-  return signature === `sha256=${hash}`;
-}
-
-// =============================
-// Webhook Twitch
-// temporalmente solo para DEV
-const isDev = process.env.NODE_ENV !== "production";
-
-app.post("/webhook", async (req, res) => {
-  if (!isDev && !verifyTwitchSignature(req)) return res.status(403).end();
-  const data = req.body;
-  if (data.subscription?.type === "channel.follow") {
-    const follower = data.event.user_name;
-    followerCount++;
-    lastFollower = follower;
-    await saveFollowers();
-
-    // overlay
-    broadcast({
-      type: "update",
-      follow: follower,
-      goal: { current: followerCount, target: FOLLOWER_GOAL },
-      lastFollower,
-    });
-
-    // alerta terminal
-    broadcast({
-      type: "follow",
-      name: follower,
-    });
-  }
-  res.status(200).end();
-});
-
-// =============================
-// Endpoint de prueba
-app.get("/test-follow", async (req, res) => {
-  const follower =
-    req.query.name || `TestUser${Math.floor(Math.random() * 1000)}`;
-  followerCount++;
-  lastFollower = follower;
-  await saveFollowers();
-
-  // overlay
-  broadcast({
-    type: "update",
-    follow: follower,
-    goal: { current: followerCount, target: FOLLOWER_GOAL },
-    lastFollower,
-  });
-
-  // alerta terminal
-  broadcast({
-    type: "follow",
-    name: follower,
-  });
-
-  res.send(`Simulado seguidor: ${follower}`);
-});
+// Pasamos getState a WebSocket para evitar ciclos
+initWebSocket(server, getState);
