@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BRB Overlay Pro</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="grid"></div>
+    <div id="sweep"></div>
+    <div id="h-rule"></div>
+
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+
+    <div id="side-deco">SYS_ESTADO :: OPERADOR_AUSENTE :: SEÑAL_EN_ESPERA</div>
+    <div id="ascii-bg"></div>
+
+    <div id="container">
+      <div id="top-bar">
+        <div class="dots">
+          <div class="dot-btn"></div>
+          <div class="dot-btn"></div>
+          <div class="dot-btn"></div>
+        </div>
+        <span>SESION_STREAM.EXE — PID 2401</span>
+        <span id="clock-top">--:--:--</span>
+      </div>
+
+      <div id="body">
+        <div id="status-tag">
+          <div class="pip"></div>
+          OPERADOR TEMPORALMENTE AUSENTE
+        </div>
+        <div id="headline-wrap">
+          <div id="eyebrow">&gt; SESIÓN EN PAUSA</div>
+          <div id="headline" data-text="mejudev">mejudev</div>
+        </div>
+        <div id="sub-msg">
+          El stream está en pausa momentáneamente.<br />
+          Vuelvo enseguida, no os vayáis.<br />
+          <span style="opacity: 0.6; font-size: 13px"
+            >// Mantenéd el chat caliente — ahora vuelvo.</span
+          >
+        </div>
+      </div>
+
+      <div id="log-row">
+        <div id="elapsed-wrap"><span id="elapsed">00:00</span></div>
+        <div id="log-scroll">
+          <div id="log-text">
+            SYS :: stream_pausado() &nbsp;|&nbsp; SEÑAL :: emisión_en_espera
+            &nbsp;|&nbsp; CHAT :: activo &nbsp;|&nbsp; AUDIO :: silenciado
+            &nbsp;|&nbsp; OBS :: escena_brb
+          </div>
+        </div>
+        <div id="log-time"></div>
+      </div>
+    </div>
+
+    <div id="overlay-meta">
+      <div id="last-follower">Último seguidor: --</div>
+      <div id="follower-goal">Meta seguidores: --</div>
+      <div id="last-donation">Última donación: --</div>
+      <div id="last-subscriber">Último suscriptor: --</div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

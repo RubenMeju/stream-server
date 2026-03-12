@@ -439,7 +439,12 @@ body {
   background: var(--blue);
   opacity: 0.7;
 }
-
+#last-follower.flash {
+  text-shadow:
+    0 0 12px #00ff88,
+    0 0 24px rgba(0, 255, 136, 0.6);
+  transition: all 0.4s ease;
+}
 /* ════════════════════════════════
      ANIMACIONES
   ════════════════════════════════ */

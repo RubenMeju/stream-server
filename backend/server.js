@@ -123,6 +123,8 @@ function broadcast(data) {
 
 wss.on("connection", (ws) => {
   console.log("Cliente WebSocket conectado");
+
+  // Enviar estado inicial de goal
   ws.send(
     JSON.stringify({
       type: "goal",
@@ -131,6 +133,16 @@ wss.on("connection", (ws) => {
       lastFollower,
     }),
   );
+
+  // Enviar último seguidor como evento 'follow' para alerta terminal
+  if (lastFollower && lastFollower !== "--") {
+    ws.send(
+      JSON.stringify({
+        type: "follow",
+        name: lastFollower,
+      }),
+    );
+  }
 });
 
 // =============================
@@ -151,23 +163,32 @@ function verifyTwitchSignature(req) {
 
 // =============================
 // Webhook Twitch
-app.post("/webhook", async (req, res) => {
-  if (!verifyTwitchSignature(req)) return res.status(403).end();
-  const data = req.body;
+// temporalmente solo para DEV
+const isDev = process.env.NODE_ENV !== "production";
 
+app.post("/webhook", async (req, res) => {
+  if (!isDev && !verifyTwitchSignature(req)) return res.status(403).end();
+  const data = req.body;
   if (data.subscription?.type === "channel.follow") {
     const follower = data.event.user_name;
     followerCount++;
-    lastFollower = follower; // <--- actualizar último seguidor
+    lastFollower = follower;
     await saveFollowers();
+
+    // overlay
     broadcast({
       type: "update",
       follow: follower,
       goal: { current: followerCount, target: FOLLOWER_GOAL },
       lastFollower,
     });
-  }
 
+    // alerta terminal
+    broadcast({
+      type: "follow",
+      name: follower,
+    });
+  }
   res.status(200).end();
 });
 
@@ -177,13 +198,22 @@ app.get("/test-follow", async (req, res) => {
   const follower =
     req.query.name || `TestUser${Math.floor(Math.random() * 1000)}`;
   followerCount++;
-  lastFollower = follower; // <--- actualizar último seguidor
+  lastFollower = follower;
   await saveFollowers();
+
+  // overlay
   broadcast({
     type: "update",
     follow: follower,
     goal: { current: followerCount, target: FOLLOWER_GOAL },
     lastFollower,
   });
+
+  // alerta terminal
+  broadcast({
+    type: "follow",
+    name: follower,
+  });
+
   res.send(`Simulado seguidor: ${follower}`);
 });

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Stream Starting Soon</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="grain"></div>
+    <div id="grid-bg"></div>
+
+    <div class="bracket tl"></div>
+    <div class="bracket tr"></div>
+    <div class="bracket bl"></div>
+    <div class="bracket br"></div>
+
+    <div id="live-badge">
+      <div class="ring"></div>
+      STANDBY
+    </div>
+
+    <div id="main">
+      <!-- LEFT -->
+      <div id="left">
+        <div class="label-row">
+          <div class="dot"></div>
+          BROADCAST SYSTEM v2.4.1
+        </div>
+
+        <div>
+          <div id="headline">
+            <span>GET READY</span>
+            EL STREAM<br />COMENZARA<br />PRONTO
+          </div>
+        </div>
+
+        <div id="countdown-wrap">
+          <div id="countdown">00:00</div>
+          <div id="countdown-label">TIEMPO RESTANTE</div>
+        </div>
+
+        <div id="bar-wrap">
+          <div id="bar-track">
+            <div id="bar-fill"></div>
+          </div>
+          <div id="bar-pct">0%</div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div id="right">
+        <div id="terminal-header">
+          <div class="win-btn"></div>
+          <div class="win-btn"></div>
+          <div class="win-btn"></div>
+          <span id="terminal-title">SYSTEM — INIT SEQUENCE</span>
+        </div>
+        <div id="terminal-body">
+          <!-- lines injected by JS -->
+        </div>
+        <div id="ascii-area">
+          <div id="ascii-lines"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="status-bar">
+      <span class="status-item">STREAM CORE ONLINE</span>
+      <span class="status-item">TWITCH CONNECTED</span>
+      <span class="status-item">OVERLAY ACTIVE</span>
+      <span class="status-item" id="fps-counter">60 FPS</span>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
