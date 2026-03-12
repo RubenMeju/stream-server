@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>mejudev — EN DIRECTO</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="online.css" />
+  </head>
+  <body>
+    <div id="scanlines"></div>
+    <div id="sweep"></div>
+
+    <!-- Bordes laterales -->
+    <div class="side-border left"></div>
+    <div class="side-border right"></div>
+    <div class="side-label left">
+      SYS :: SEÑAL_ACTIVA :: mejudev :: EN_DIRECTO
+    </div>
+    <div class="side-label right">TWITCH.TV/MEJUDEV :: SESIÓN_EN_CURSO</div>
+
+    <!-- Esquinas del área de vídeo -->
+    <div class="vid-corner tl"></div>
+    <div class="vid-corner tr"></div>
+    <div class="vid-corner bl"></div>
+    <div class="vid-corner br"></div>
+
+    <!-- BARRA SUPERIOR -->
+    <div id="top-bar">
+      <div id="top-left">
+        <div id="channel-name">mejudev</div>
+        <div class="divider"></div>
+        <div id="live-badge">
+          <div class="live-dot"></div>
+          <span id="live-text">EN DIRECTO</span>
+        </div>
+      </div>
+
+      <div id="top-center">
+        <div id="stream-title">SESIÓN ACTIVA</div>
+        <div id="stream-sub">twitch.tv/mejudev</div>
+      </div>
+
+      <!-- NUEVO: Meta y último seguidor -->
+      <div id="stream-meta">
+        <span id="follower-goal">Meta: 500</span> ·
+        <span id="last-follower">Último seguidor: --</span>
+      </div>
+
+      <div id="top-right">
+        <div class="stat-block">
+          <div class="stat-val" id="clock">--:--:--</div>
+          <div class="stat-lbl">hora local</div>
+        </div>
+        <div class="divider"></div>
+        <div class="stat-block">
+          <div class="stat-val" id="uptime">00:00:00</div>
+          <div class="stat-lbl">tiempo en directo</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BARRA INFERIOR -->
+    <div id="bottom-bar">
+      <div id="ticker-tag">► SYS</div>
+      <div id="ticker-wrap">
+        <div id="ticker-text">
+          mejudev EN DIRECTO &nbsp;·&nbsp; SEÑAL ESTABLE &nbsp;·&nbsp; CHAT
+          ACTIVO &nbsp;·&nbsp; twitch.tv/mejudev &nbsp;·&nbsp; BIENVENIDOS AL
+          STREAM &nbsp;·&nbsp; AUDIO OK &nbsp;·&nbsp; VÍDEO OK &nbsp;·&nbsp;
+          OVERLAY ACTIVO &nbsp;·&nbsp; mejudev EN DIRECTO &nbsp;·&nbsp; SEÑAL
+          ESTABLE &nbsp;·&nbsp; CHAT ACTIVO
+        </div>
+      </div>
+      <div id="bottom-stats">
+        <div class="b-item">
+          <div class="b-dot"></div>
+          <span>SEÑAL OK</span>
+        </div>
+        <div class="b-item">
+          <div class="b-dot"></div>
+          <span id="fps">60 FPS</span>
+        </div>
+        <div class="b-item">
+          <div class="b-dot"></div>
+          <span id="clock-b">--:--</span>
+        </div>
+      </div>
+    </div>
+
+    <script src="online.js"></script>
+  </body>
+</html>
