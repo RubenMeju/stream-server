@@ -14,10 +14,21 @@ function initWebSocket(server, getFollowersState) {
   });
 }
 
+/**
+ * Envía un mensaje a todos los clientes conectados
+ * @param {*} message
+ */
 function broadcast(message) {
   if (!wss) return;
+  const WebSocket = require("ws");
   wss.clients.forEach((client) => {
-    if (client.readyState === 1) client.send(JSON.stringify(message));
+    if (client.readyState === WebSocket.OPEN) {
+      try {
+        client.send(JSON.stringify(message));
+      } catch (err) {
+        console.warn("Error enviando mensaje WebSocket:", err.message);
+      }
+    }
   });
 }
 

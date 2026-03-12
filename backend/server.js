@@ -1,54 +1,84 @@
+require("dotenv").config({ path: ".env.local" });
 const express = require("express");
 const bodyParser = require("body-parser");
-const { PORT, PUBLIC_PATH, CLIENT_ID, CHANNEL_LOGIN } = require("./config");
-const { setFollowers, getState } = require("./followers");
-const { getAppToken, getBroadcasterId } = require("./twitch");
+
+const {
+  PORT,
+  PUBLIC_PATH,
+  USER_TOKEN,
+  MODERATOR_LOGIN,
+  CHANNEL_LOGIN,
+  WEBHOOK_SECRET,
+} = require("./config");
+
+const { getState } = require("./followers");
+const { getBroadcasterId, getAppToken } = require("./twitch");
 const { initWebSocket } = require("./websocket");
-const routes = require("./routes");
+const { handleTwitchWebhook } = require("./webhook");
+const { createAllEventSubSubscriptions } = require("./eventsub");
 
 const app = express();
 
 app.use(express.static(PUBLIC_PATH));
 app.use(bodyParser.json());
-app.use(routes);
 
-async function loadFollowersFromTwitch() {
-  try {
-    const token = await getAppToken();
-    const broadcasterId = await getBroadcasterId(token, CHANNEL_LOGIN);
+// endpoint webhook Twitch
+app.post("/twitch/webhook", (req, res) => handleTwitchWebhook(req, res, true));
 
-    const res = await fetch(
-      `https://api.twitch.tv/helix/users/follows?to_id=${broadcasterId}&first=1`,
-      {
-        headers: {
-          "Client-ID": CLIENT_ID,
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
+app.get("/auth/callback", async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.send("Sin código");
 
-    const data = await res.json();
+  const params = new URLSearchParams({
+    client_id: process.env.CLIENT_ID,
+    client_secret: process.env.CLIENT_SECRET,
+    code,
+    grant_type: "authorization_code",
+    redirect_uri: "https://twitch-a7sp.onrender.com/auth/callback", // ← cambiado
+  });
 
-    setFollowers(data.total || 0, data.data[0]?.from_name || "--");
-
-    const state = getState();
-    console.log(
-      `Followers cargados desde Twitch: ${state.followerCount}, Último: ${state.lastFollower}`,
-    );
-    console.log("✅ Conexión a Twitch exitosa.");
-  } catch (err) {
-    console.error(
-      "⚠️ No se pudo conectar a Twitch, modo test activo:",
-      err.message,
-    );
-  }
-}
-
-// Cambia el puerto si ya está en uso
-const server = app.listen(PORT, async () => {
-  console.log(`Servidor HTTP corriendo en puerto ${PORT}`);
-  await loadFollowersFromTwitch();
+  const r = await fetch("https://id.twitch.tv/oauth2/token", {
+    method: "POST",
+    body: params,
+  });
+  const data = await r.json();
+  console.log("USER TOKEN:", data.access_token);
+  res.send(
+    `<b>Token generado:</b> ${data.access_token}<br>Cópialo en .env.local como USER_TOKEN`,
+  );
 });
 
-// Pasamos getState a WebSocket para evitar ciclos
+let server = app.listen(PORT, async () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
+
+  try {
+    // 🔹 obtener tokens
+    const appToken = await getAppToken();
+
+    // 🔹 obtener IDs
+    const broadcasterId = await getBroadcasterId(appToken, CHANNEL_LOGIN);
+    const moderatorId = await getBroadcasterId(appToken, MODERATOR_LOGIN);
+
+    console.log("Broadcaster ID:", broadcasterId);
+    console.log("Moderator ID:", moderatorId);
+
+    // 🔹 crear suscripciones
+    const callbackUrl = "https://twitch-a7sp.onrender.com/twitch/webhook";
+
+    await createAllEventSubSubscriptions(
+      appToken,
+      USER_TOKEN,
+      broadcasterId,
+      moderatorId,
+      callbackUrl,
+      WEBHOOK_SECRET,
+    );
+
+    console.log("✅ Inicialización completa");
+  } catch (err) {
+    console.error("❌ Error inicializando:", err.message);
+  }
+});
+
+// WebSocket overlay
 initWebSocket(server, getState);

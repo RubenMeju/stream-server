@@ -7,6 +7,13 @@ let lastFollower = "--";
 function setFollowers(count, last) {
   followerCount = count;
   lastFollower = last;
+  // 🔹 LOG para depurar
+  console.log(
+    "setFollowers → Último follower:",
+    lastFollower,
+    "Total:",
+    followerCount,
+  );
 }
 
 function getState() {
@@ -16,6 +23,13 @@ function getState() {
 function incrementFollower(name) {
   followerCount++;
   lastFollower = name;
+  // 🔹 LOG para depurar
+  console.log(
+    "incrementFollower → Nuevo follower:",
+    name,
+    "Total:",
+    followerCount,
+  );
 
   broadcast({
     type: "update",

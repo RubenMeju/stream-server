@@ -445,6 +445,53 @@ body {
     0 0 24px rgba(0, 255, 136, 0.6);
   transition: all 0.4s ease;
 }
+.flash {
+  animation: flash 0.8s ease-in-out;
+}
+@keyframes flash {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.2);
+  }
+}
+
+.flash-msg {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  color: #0f0;
+  padding: 8px 16px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 18px;
+  border: 1px solid #0f0;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  animation: fadeInOut 2.5s forwards;
+}
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  10%,
+  90% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+}
 /* ════════════════════════════════
      ANIMACIONES
   ════════════════════════════════ */

@@ -50,28 +50,49 @@ const ws = new WebSocket(
   `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`,
 );
 
-ws.onopen = () => {
-  console.log("Conectado al WebSocket del overlay");
-};
+ws.onopen = () => console.log("Conectado al WebSocket del overlay");
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
 
-  // ─────────────── ACTUALIZAR ÚLTIMO SEGUIDOR ───────────────
+  // ─────────────── ÚLTIMO SEGUIDOR ───────────────
   if (data.type === "update" && data.follow) {
-    const lastFollowerEl = document.getElementById("last-follower");
-    if (lastFollowerEl) {
-      lastFollowerEl.textContent = `Último seguidor: ${data.follow}`;
-      lastFollowerEl.classList.add("flash");
-      setTimeout(() => lastFollowerEl.classList.remove("flash"), 800);
+    const el = document.getElementById("last-follower");
+    if (el) {
+      el.textContent = `Último seguidor: ${data.follow}`;
+      el.classList.add("flash");
+      setTimeout(() => el.classList.remove("flash"), 800);
     }
   }
 
-  // ─────────────── ACTUALIZAR META DE SEGUIDORES ───────────────
+  // ─────────────── META DE SEGUIDORES ───────────────
   if (data.type === "update" && data.goal) {
-    const goalEl = document.getElementById("follower-goal");
-    if (goalEl) {
-      goalEl.textContent = `Meta: ${data.goal.target} (${data.goal.current})`;
+    const el = document.getElementById("follower-goal");
+    if (el) {
+      el.textContent = `Meta: ${data.goal.current} / ${data.goal.target}`;
     }
+  }
+
+  // ─────────────── NUEVOS SUSCRIPTORES ───────────────
+  if (data.type === "subscribe") {
+    const msg = `Nuevo suscriptor: ${data.name}`;
+    console.log(msg);
+    flashMessage(msg, "subscribe");
+  }
+
+  // ─────────────── GIFT SUBS ───────────────
+  if (data.type === "gift-sub") {
+    const msg = `Gift Sub de ${data.name}, total: ${data.total}`;
+    console.log(msg);
+    flashMessage(msg, "gift-sub");
+  }
+
+  // ─────────────── FUNCIÓN AUXILIAR PARA FLASH ───────────────
+  function flashMessage(msg, cls) {
+    const container = document.createElement("div");
+    container.className = `flash-msg ${cls}`;
+    container.textContent = msg;
+    document.body.appendChild(container);
+    setTimeout(() => container.remove(), 2500);
   }
 };
