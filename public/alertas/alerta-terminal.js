@@ -144,8 +144,12 @@ async function renderGoalProgress() {
 //////////////////////////////////////////////////////////////////
 // MAIN ALERT
 //////////////////////////////////////////////////////////////////
+let alertaActiva = false;
 
 async function mostrarAlerta(nombre) {
+  if (alertaActiva) return; // ← evita llamadas duplicadas
+  alertaActiva = true;
+
   resetTerminal();
   showTerminal();
 
@@ -220,10 +224,12 @@ async function mostrarAlerta(nombre) {
 function startCountdown() {
   dom.cdFill.style.animation = "none";
   dom.cdFill.getBoundingClientRect();
-
   dom.cdFill.style.animation = "cdFillAnim 5s linear forwards";
 
-  setTimeout(hideTerminal, 5000);
+  setTimeout(() => {
+    hideTerminal();
+    alertaActiva = false; // ← resetea el flag al cerrar
+  }, 5000);
 }
 
 //////////////////////////////////////////////////////////////////
@@ -254,17 +260,24 @@ function initSocket() {
   socket.onopen = () => console.log("WebSocket conectado");
 
   socket.onerror = (err) => console.error("WebSocket error", err);
-
   socket.onmessage = (evt) => {
     try {
       const data = JSON.parse(evt.data);
 
-      if (data.type === "follow") mostrarAlerta(data.name);
-
-      if (data.type === "goal") {
-        state.lastFollowers = data.current;
-        state.goalFollowers = data.goal;
+      if (data.type === "update") {
+        if (data.goal?.current !== undefined)
+          state.lastFollowers = data.goal.current;
+        if (data.goal?.target !== undefined)
+          state.goalFollowers = data.goal.target;
       }
+
+      if (data.type === "init") {
+        if (data.state?.followerCount !== undefined)
+          state.lastFollowers = data.state.followerCount;
+        state.goalFollowers = 500;
+      }
+
+      if (data.type === "follow") mostrarAlerta(data.name); // ← solo una vez, al final
     } catch {
       console.log("mensaje ignorado");
     }

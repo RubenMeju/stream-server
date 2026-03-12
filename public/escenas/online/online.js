@@ -54,7 +54,17 @@ ws.onopen = () => console.log("Conectado al WebSocket del overlay");
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-
+  // ← añade este bloque
+  if (data.type === "init") {
+    const elFollower = document.getElementById("last-follower");
+    if (elFollower && data.state?.lastFollower) {
+      elFollower.textContent = `Último seguidor: ${data.state.lastFollower}`;
+    }
+    const elGoal = document.getElementById("follower-goal");
+    if (elGoal && data.state?.followerCount) {
+      elGoal.textContent = `Meta: ${data.state.followerCount} / ${process.env.FOLLOWER_GOAL || 500}`;
+    }
+  }
   // ─────────────── ÚLTIMO SEGUIDOR ───────────────
   if (data.type === "update" && data.follow) {
     const el = document.getElementById("last-follower");

@@ -1,6 +1,7 @@
 require("dotenv").config({ path: ".env.local" });
 const express = require("express");
 const bodyParser = require("body-parser");
+const { broadcast } = require("./websocket");
 
 const {
   PORT,
@@ -100,6 +101,17 @@ async function pollFollowers(userToken, broadcasterId) {
       const lastFollower = data.data[0].user_name;
       const totalFollowers = data.total || 0;
       setFollowers(totalFollowers, lastFollower);
+
+      // ← añade esto para que el overlay se actualice
+      broadcast({
+        type: "update",
+        follow: lastFollower,
+        goal: {
+          current: totalFollowers,
+          target: process.env.FOLLOWER_GOAL,
+        },
+        lastFollower,
+      });
     }
   } catch (err) {
     console.warn("Error polling followers:", err.message);
