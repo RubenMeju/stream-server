@@ -31,13 +31,22 @@ let appToken = null;
 let tokenExpiry = null;
 
 // =============================
-// Load / Save followers
+// Load / Save followers (refactorizado)
 async function loadFollowers() {
   try {
     const data = JSON.parse(await fs.readFile("followers.json", "utf8"));
-    followerCount = data.count;
-  } catch {
+    // Cargar contador y último seguidor desde el archivo
+    followerCount = data.count || 0;
+    lastFollower = data.lastFollower || "--";
+    console.log(
+      `Followers cargados: ${followerCount}, Último seguidor: ${lastFollower}`,
+    );
+  } catch (err) {
+    console.log(
+      "No se encontró followers.json, inicializando valores por defecto.",
+    );
     followerCount = 0;
+    lastFollower = "--";
   }
 }
 
@@ -45,7 +54,7 @@ async function saveFollowers() {
   try {
     await fs.writeFile(
       "followers.json",
-      JSON.stringify({ count: followerCount }, null, 2),
+      JSON.stringify({ count: followerCount, lastFollower }, null, 2),
     );
   } catch (err) {
     console.error("Error guardando followers:", err.message);
