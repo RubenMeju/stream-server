@@ -9,9 +9,10 @@ const {
   MODERATOR_LOGIN,
   CHANNEL_LOGIN,
   WEBHOOK_SECRET,
+  FOLLOWER_POLL_INTERVAL = 60000,
 } = require("./config");
 
-const { getState } = require("./followers");
+const { getState, setFollowers } = require("./followers");
 const { getBroadcasterId, getAppToken } = require("./twitch");
 const { initWebSocket } = require("./websocket");
 const { handleTwitchWebhook } = require("./webhook");
@@ -59,6 +60,9 @@ let server = app.listen(PORT, async () => {
     const broadcasterId = await getBroadcasterId(appToken, CHANNEL_LOGIN);
     const moderatorId = await getBroadcasterId(appToken, MODERATOR_LOGIN);
 
+    // 🔹 polling followers
+    pollFollowers(USER_TOKEN, broadcasterId);
+
     console.log("Broadcaster ID:", broadcasterId);
     console.log("Moderator ID:", moderatorId);
 
@@ -79,6 +83,32 @@ let server = app.listen(PORT, async () => {
     console.error("❌ Error inicializando:", err.message);
   }
 });
+async function pollFollowers(userToken, broadcasterId) {
+  try {
+    const res = await fetch(
+      `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${broadcasterId}&first=1`,
+      {
+        headers: {
+          "Client-ID": process.env.CLIENT_ID,
+          Authorization: `Bearer ${userToken}`,
+        },
+      },
+    );
+    const data = await res.json();
 
+    if (res.ok && Array.isArray(data.data) && data.data.length > 0) {
+      const lastFollower = data.data[0].user_name;
+      const totalFollowers = data.total || 0;
+      setFollowers(totalFollowers, lastFollower);
+    }
+  } catch (err) {
+    console.warn("Error polling followers:", err.message);
+  }
+
+  setTimeout(
+    () => pollFollowers(userToken, broadcasterId),
+    FOLLOWER_POLL_INTERVAL,
+  );
+}
 // WebSocket overlay
 initWebSocket(server, getState);

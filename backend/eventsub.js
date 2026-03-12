@@ -50,15 +50,6 @@ async function createAllEventSubSubscriptions(
 
   const events = [
     {
-      type: "channel.follow",
-      version: "2",
-      condition: {
-        broadcaster_user_id: broadcasterId,
-        moderator_user_id: moderatorId,
-      },
-      token: userToken, // ← User Token aquí
-    },
-    {
       type: "channel.subscribe",
       version: "1",
       condition: { broadcaster_user_id: broadcasterId },
