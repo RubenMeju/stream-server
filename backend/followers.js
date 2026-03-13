@@ -4,6 +4,13 @@ const { broadcast } = require("./websocket");
 let followerCount = 0;
 let lastFollower = "--";
 
+function calcularMeta(total) {
+  const hitos = [
+    50, 100, 150, 200, 300, 500, 750, 1000, 1500, 2000, 5000, 10000,
+  ];
+  return hitos.find((h) => h > total) || total + 1000;
+}
+
 function setFollowers(count, last) {
   followerCount = count;
   lastFollower = last;
@@ -23,7 +30,6 @@ function getState() {
 function incrementFollower(name) {
   followerCount++;
   lastFollower = name;
-  // 🔹 LOG para depurar
   console.log(
     "incrementFollower → Nuevo follower:",
     name,
@@ -31,14 +37,16 @@ function incrementFollower(name) {
     followerCount,
   );
 
+  const meta = calcularMeta(followerCount); // ← calcula la meta automáticamente
+
   broadcast({
     type: "update",
     follow: name,
-    goal: { current: followerCount, target: process.env.FOLLOWER_GOAL },
+    goal: { current: followerCount, target: meta }, // ← usa meta dinámica
     lastFollower,
   });
 
   broadcast({ type: "follow", name });
 }
 
-module.exports = { setFollowers, getState, incrementFollower };
+module.exports = { setFollowers, getState, incrementFollower, calcularMeta };

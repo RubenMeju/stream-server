@@ -46,18 +46,36 @@ const ws = new WebSocket(
 ws.onopen = () => console.log("WebSocket conectado");
 ws.onmessage = (evt) => {
   const data = JSON.parse(evt.data);
+  console.log("WS mensaje:", data); // ← añade esto temporalmente
+
+  // ← añade este bloque
+  if (data.type === "init") {
+    console.log("init state:", data.state); // ← y esto
+    if (data.state?.lastFollower)
+      document.getElementById("last-follower").textContent =
+        `Último seguidor: ${data.state.lastFollower}`;
+    if (data.state?.followerCount)
+      document.getElementById("follower-goal").textContent =
+        `Meta seguidores: ${data.state.followerCount} / 500`;
+  }
+
   if (data.type === "update") {
     if (data.follow)
       document.getElementById("last-follower").textContent =
         `Último seguidor: ${data.follow}`;
     if (data.goal)
       document.getElementById("follower-goal").textContent =
-        `Meta seguidores: ${data.goal.current}/${data.goal.target}`;
+        `Meta seguidores: ${data.goal.current} / ${data.goal.target}`;
     if (data.donation)
       document.getElementById("last-donation").textContent =
         `Última donación: ${data.donation.name} (${data.donation.amount})`;
     if (data.subscriber)
       document.getElementById("last-subscriber").textContent =
         `Último suscriptor: ${data.subscriber}`;
+  }
+
+  if (data.type === "subscribe") {
+    document.getElementById("last-subscriber").textContent =
+      `Último suscriptor: ${data.name}`;
   }
 };

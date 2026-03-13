@@ -415,13 +415,12 @@ body::after {
 #overlay-meta {
   position: absolute;
   bottom: 80px;
-  right: 40px;
+  right: 340px;
   display: flex;
   flex-direction: column;
   gap: 6px;
   color: #fff8c0;
-  font-size: 14px;
+  font-size: 20px;
   letter-spacing: 0.12em;
   font-family: var(--font-mono);
-  opacity: 0.9;
 }

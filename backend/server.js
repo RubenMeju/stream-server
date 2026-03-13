@@ -14,7 +14,7 @@ const {
   FOLLOWER_POLL_INTERVAL = 60000,
 } = require("./config");
 
-const { getState, setFollowers } = require("./followers");
+const { getState, setFollowers, calcularMeta } = require("./followers");
 const {
   getBroadcasterId,
   getAppToken,
@@ -121,12 +121,14 @@ async function pollFollowers(userToken, broadcasterId) {
       const totalFollowers = data.total || 0;
       setFollowers(totalFollowers, lastFollower);
 
+      const meta = calcularMeta(totalFollowers);
+
       broadcast({
         type: "update",
         follow: lastFollower,
         goal: {
           current: totalFollowers,
-          target: process.env.FOLLOWER_GOAL,
+          target: meta,
         },
         lastFollower,
       });

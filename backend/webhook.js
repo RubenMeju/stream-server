@@ -1,7 +1,7 @@
 // backend/webhook.js
 const crypto = require("crypto");
 const { WEBHOOK_SECRET } = require("./config");
-const { incrementFollower, getState } = require("./followers");
+const { incrementFollower, getState, calcularMeta } = require("./followers");
 const { broadcast } = require("./websocket");
 
 // Verifica que el webhook viene de Twitch (EventSub)
@@ -40,7 +40,7 @@ async function handleTwitchWebhook(req, res, isDev = false) {
         follow: follower,
         goal: {
           current: state.followerCount,
-          target: process.env.FOLLOWER_GOAL,
+          target: calcularMeta(state.followerCount),
         },
         lastFollower: state.lastFollower,
       });

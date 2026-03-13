@@ -1,4 +1,11 @@
 // ─────────────── FUNCIONES DE UTILIDAD ───────────────
+function calcularMeta(total) {
+  const hitos = [
+    50, 100, 150, 200, 300, 500, 750, 1000, 1500, 2000, 5000, 10000,
+  ];
+  return hitos.find((h) => h > total) || total + 1000;
+}
+
 function pad(n) {
   return String(n).padStart(2, "0");
 }
@@ -62,7 +69,9 @@ ws.onmessage = (event) => {
     }
     const elGoal = document.getElementById("follower-goal");
     if (elGoal && data.state?.followerCount) {
-      elGoal.textContent = `Meta: ${data.state.followerCount} / ${process.env.FOLLOWER_GOAL || 500}`;
+      // ← calcula la meta en el cliente igual que en el servidor
+      const meta = calcularMeta(data.state.followerCount);
+      elGoal.textContent = `Seguidores ${data.state.followerCount} / ${meta}`;
     }
   }
   // ─────────────── ÚLTIMO SEGUIDOR ───────────────
@@ -79,7 +88,7 @@ ws.onmessage = (event) => {
   if (data.type === "update" && data.goal) {
     const el = document.getElementById("follower-goal");
     if (el) {
-      el.textContent = `Meta: ${data.goal.current} / ${data.goal.target}`;
+      el.textContent = `Seguidores: ${data.goal.current} / ${data.goal.target}`;
     }
   }
 
