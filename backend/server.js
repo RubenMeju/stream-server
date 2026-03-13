@@ -7,6 +7,7 @@ const {
   PORT,
   PUBLIC_PATH,
   USER_TOKEN,
+  REFRESH_TOKEN,
   MODERATOR_LOGIN,
   CHANNEL_LOGIN,
   WEBHOOK_SECRET,
@@ -14,7 +15,11 @@ const {
 } = require("./config");
 
 const { getState, setFollowers } = require("./followers");
-const { getBroadcasterId, getAppToken } = require("./twitch");
+const {
+  getBroadcasterId,
+  getAppToken,
+  validateAndRefreshToken,
+} = require("./twitch");
 const { initWebSocket } = require("./websocket");
 const { handleTwitchWebhook } = require("./webhook");
 const { createAllEventSubSubscriptions } = require("./eventsub");
@@ -23,6 +28,9 @@ const app = express();
 
 app.use(express.static(PUBLIC_PATH));
 app.use(bodyParser.json());
+
+// token activo en memoria
+let activeUserToken = USER_TOKEN;
 
 // endpoint webhook Twitch
 app.post("/twitch/webhook", (req, res) => handleTwitchWebhook(req, res, true));
@@ -36,7 +44,7 @@ app.get("/auth/callback", async (req, res) => {
     client_secret: process.env.CLIENT_SECRET,
     code,
     grant_type: "authorization_code",
-    redirect_uri: "https://twitch-a7sp.onrender.com/auth/callback", // ← cambiado
+    redirect_uri: "https://twitch-a7sp.onrender.com/auth/callback",
   });
 
   const r = await fetch("https://id.twitch.tv/oauth2/token", {
@@ -45,34 +53,44 @@ app.get("/auth/callback", async (req, res) => {
   });
   const data = await r.json();
   console.log("USER TOKEN:", data.access_token);
-  res.send(
-    `<b>Token generado:</b> ${data.access_token}<br>Cópialo en .env.local como USER_TOKEN`,
-  );
+  console.log("REFRESH TOKEN:", data.refresh_token);
+  res.send(`
+    <b>Access Token:</b> ${data.access_token}<br><br>
+    <b>Refresh Token:</b> ${data.refresh_token}<br><br>
+    Copia ambos en .env.local como USER_TOKEN y REFRESH_TOKEN
+  `);
 });
 
 let server = app.listen(PORT, async () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
 
   try {
-    // 🔹 obtener tokens
+    // 🔹 obtener app token
     const appToken = await getAppToken();
+
+    // 🔹 validar y refrescar user token si es necesario
+    const { accessToken, refreshToken } = await validateAndRefreshToken(
+      USER_TOKEN,
+      REFRESH_TOKEN,
+    );
+    activeUserToken = accessToken;
 
     // 🔹 obtener IDs
     const broadcasterId = await getBroadcasterId(appToken, CHANNEL_LOGIN);
     const moderatorId = await getBroadcasterId(appToken, MODERATOR_LOGIN);
 
-    // 🔹 polling followers
-    pollFollowers(USER_TOKEN, broadcasterId);
-
     console.log("Broadcaster ID:", broadcasterId);
     console.log("Moderator ID:", moderatorId);
+
+    // 🔹 polling followers
+    pollFollowers(activeUserToken, broadcasterId);
 
     // 🔹 crear suscripciones
     const callbackUrl = "https://twitch-a7sp.onrender.com/twitch/webhook";
 
     await createAllEventSubSubscriptions(
       appToken,
-      USER_TOKEN,
+      activeUserToken,
       broadcasterId,
       moderatorId,
       callbackUrl,
@@ -84,6 +102,7 @@ let server = app.listen(PORT, async () => {
     console.error("❌ Error inicializando:", err.message);
   }
 });
+
 async function pollFollowers(userToken, broadcasterId) {
   try {
     const res = await fetch(
@@ -102,7 +121,6 @@ async function pollFollowers(userToken, broadcasterId) {
       const totalFollowers = data.total || 0;
       setFollowers(totalFollowers, lastFollower);
 
-      // ← añade esto para que el overlay se actualice
       broadcast({
         type: "update",
         follow: lastFollower,
@@ -122,5 +140,6 @@ async function pollFollowers(userToken, broadcasterId) {
     FOLLOWER_POLL_INTERVAL,
   );
 }
+
 // WebSocket overlay
 initWebSocket(server, getState);
