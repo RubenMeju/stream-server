@@ -13,6 +13,7 @@ function verifyTwitchSignature(req) {
 
   const body = JSON.stringify(req.body);
   const hmacMessage = messageId + timestamp + body;
+
   const hash = crypto
     .createHmac("sha256", WEBHOOK_SECRET)
     .update(hmacMessage)
@@ -23,7 +24,25 @@ function verifyTwitchSignature(req) {
 
 // Maneja todos los eventos EventSub importantes
 async function handleTwitchWebhook(req, res, isDev = false) {
-  if (!isDev && !verifyTwitchSignature(req)) return res.status(403).end();
+  const messageType = req.headers["twitch-eventsub-message-type"];
+
+  // 🔹 1. VERIFICACIÓN DEL WEBHOOK (challenge)
+  if (messageType === "webhook_callback_verification") {
+    console.log("Twitch verificando webhook...");
+    return res.status(200).send(req.body.challenge);
+  }
+
+  // 🔹 2. REVOCACIÓN DE SUSCRIPCIÓN
+  if (messageType === "revocation") {
+    console.warn("Twitch revocó una suscripción:", req.body);
+    return res.status(200).end();
+  }
+
+  // 🔹 3. VALIDAR FIRMA (solo en producción)
+  if (!isDev && !verifyTwitchSignature(req)) {
+    console.warn("Firma inválida en webhook");
+    return res.status(403).end();
+  }
 
   const data = req.body;
   const eventType = data.subscription?.type;
@@ -32,9 +51,11 @@ async function handleTwitchWebhook(req, res, isDev = false) {
   switch (eventType) {
     case "channel.follow": {
       const follower = event.user_name;
+
       incrementFollower(follower);
 
       const state = getState();
+
       broadcast({
         type: "update",
         follow: follower,
@@ -44,7 +65,9 @@ async function handleTwitchWebhook(req, res, isDev = false) {
         },
         lastFollower: state.lastFollower,
       });
+
       broadcast({ type: "follow", name: follower });
+
       console.log(`Nuevo follower: ${follower}`);
       break;
     }
@@ -67,12 +90,14 @@ async function handleTwitchWebhook(req, res, isDev = false) {
 
     case "channel.subscription.message": {
       const user = event.user_name;
+
       broadcast({
         type: "resub",
         name: user,
         message: event.message || "",
         subPlan: event.sub_plan || "",
       });
+
       console.log(
         `Resub de ${user}: ${event.sub_plan || ""} - mensaje: ${event.message || ""}`,
       );
@@ -80,6 +105,7 @@ async function handleTwitchWebhook(req, res, isDev = false) {
     }
 
     default:
+      console.log("Evento no manejado:", eventType);
       break;
   }
 
