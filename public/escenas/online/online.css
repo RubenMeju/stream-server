@@ -23,7 +23,7 @@
   --font-mono: "Share Tech Mono", monospace;
   --font-disp: "Orbitron", sans-serif;
   --bar-h-top: 62px;
-  --bar-h-bot: 38px;
+  --bar-h-bot: 44px;
 }
 
 /* ════════════════════════════════
@@ -161,9 +161,9 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 12px;
+  padding: 5px 14px;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.12em;
 }
 
@@ -203,22 +203,26 @@ body {
 
 /* Bloque GitHub */
 .github-block {
-  border: 1px solid rgba(80, 200, 120, 0.35);
-  background: rgba(80, 200, 120, 0.07);
+  border: 1px solid rgba(80, 200, 120, 0.5);
+  background: rgba(80, 200, 120, 0.1);
+  box-shadow: 0 0 12px rgba(80, 200, 120, 0.15);
 }
 
 .github-block .meta-label {
   color: #50c878;
-  background: rgba(80, 200, 120, 0.18);
+  background: rgba(80, 200, 120, 0.25);
+  text-shadow: 0 0 6px rgba(80, 200, 120, 0.6);
 }
 
 #last-commit {
-  color: var(--blue-dim);
+  color: var(--blue);
+  opacity: 0.9;
 }
 
 #repo-info {
   color: #50c878;
-  text-shadow: 0 0 6px rgba(80, 200, 120, 0.4);
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(80, 200, 120, 0.6);
 }
 
 .meta-divider {
@@ -296,22 +300,23 @@ body {
   position: fixed;
   top: 50%;
   writing-mode: vertical-rl;
-  font-size: 9px;
-  letter-spacing: 0.35em;
+  font-size: 12px;
+  letter-spacing: 0.3em;
   color: var(--blue);
   white-space: nowrap;
   z-index: 601;
   opacity: 0;
   animation: fadeIn 1s ease forwards 0.7s;
+  text-shadow: 0 0 8px var(--blue-glow);
 }
 
 .side-label.left {
-  left: 8px;
+  left: 10px;
   transform: translateY(-50%) rotate(180deg);
 }
 
 .side-label.right {
-  right: 8px;
+  right: 10px;
   transform: translateY(-50%);
 }
 
@@ -384,6 +389,7 @@ body {
     0 -2px 40px rgba(0, 207, 255, 0.08);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 40px;
   z-index: 700;
   overflow: hidden;
@@ -402,35 +408,6 @@ body {
   filter: blur(4px);
 }
 
-#ticker-tag {
-  font-size: 9px;
-  letter-spacing: 0.25em;
-  opacity: 0.5;
-  white-space: nowrap;
-  padding-right: 18px;
-  border-right: 1px solid var(--blue-line);
-  margin-right: 18px;
-  flex-shrink: 0;
-}
-
-#ticker-wrap {
-  flex: 1;
-  overflow: hidden;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-#ticker-text {
-  position: absolute;
-  white-space: nowrap;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  opacity: 0.45;
-  animation: ticker 40s linear infinite;
-}
-
 #bottom-stats {
   flex-shrink: 0;
   display: flex;
@@ -444,7 +421,7 @@ body {
 .b-item {
   font-size: 10px;
   letter-spacing: 0.15em;
-  opacity: 0.45;
+  opacity: 0.6;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -455,7 +432,7 @@ body {
   height: 5px;
   border-radius: 50%;
   background: var(--blue);
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 /* ════════════════════════════════
@@ -520,15 +497,6 @@ body {
   50% {
     opacity: 0.4;
     transform: scale(0.8);
-  }
-}
-
-@keyframes ticker {
-  0% {
-    transform: translateX(1920px);
-  }
-  100% {
-    transform: translateX(-100%);
   }
 }
 
