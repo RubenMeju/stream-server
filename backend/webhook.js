@@ -115,28 +115,37 @@ async function handleTwitchWebhook(req, res, isDev = false) {
     }
 
     case "channel.chat.message": {
-      const text = event.message?.text?.trim().toLowerCase();
+      const text = event.message?.text?.trim();
+      const user = event.chatter_user_name;
       const broadcasterId = event.broadcaster_user_id;
       const senderId = event.chatter_user_id;
-
-      // Necesitamos el userToken — lo pasamos desde server.js
       const userToken = req.userToken;
 
-      if (text === "!github") {
+      // ← broadcast al overlay y extensión VSCode
+      broadcast({
+        type: "chat-message",
+        user,
+        text,
+        color: event.color || "#00cfff",
+      });
+
+      const lowerText = text.toLowerCase();
+
+      if (lowerText === "!github") {
         await sendChatMessage(
           broadcasterId,
           senderId,
           userToken,
           "🐙 Mi GitHub: https://github.com/RubenMeju",
         );
-      } else if (text === "!github-repo") {
+      } else if (lowerText === "!github-repo") {
         await sendChatMessage(
           broadcasterId,
           senderId,
           userToken,
           "📁 Repo actual: visible en el overlay",
         );
-      } else if (text === "!github-languages") {
+      } else if (lowerText === "!github-languages") {
         await sendChatMessage(
           broadcasterId,
           senderId,
@@ -145,7 +154,7 @@ async function handleTwitchWebhook(req, res, isDev = false) {
         );
       }
 
-      console.log(`💬 Chat [${event.chatter_user_name}]: ${text}`);
+      console.log(`💬 Chat [${user}]: ${text}`);
       break;
     }
 
