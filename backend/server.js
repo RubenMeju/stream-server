@@ -37,8 +37,10 @@ let activeUserToken = USER_TOKEN;
 // ─────────────────────────────
 //
 
-app.post("/twitch/webhook", (req, res) => handleTwitchWebhook(req, res, true));
-
+app.post("/twitch/webhook", (req, res) => {
+  req.userToken = activeUserToken;
+  handleTwitchWebhook(req, res, true);
+});
 //
 // ─────────────────────────────
 // GITHUB WEBHOOK

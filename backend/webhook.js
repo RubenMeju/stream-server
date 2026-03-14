@@ -1,6 +1,6 @@
 // backend/webhook.js
 const crypto = require("crypto");
-const { WEBHOOK_SECRET } = require("./config");
+const { WEBHOOK_SECRET, CLIENT_ID } = require("./config");
 const { incrementFollower, getState, calcularMeta } = require("./followers");
 const { broadcast } = require("./websocket");
 
@@ -20,6 +20,27 @@ function verifyTwitchSignature(req) {
     .digest("hex");
 
   return signature === `sha256=${hash}`;
+}
+
+// Envía un mensaje al chat de Twitch
+async function sendChatMessage(broadcasterId, senderId, userToken, message) {
+  const res = await fetch("https://api.twitch.tv/helix/chat/messages", {
+    method: "POST",
+    headers: {
+      "Client-ID": CLIENT_ID,
+      Authorization: `Bearer ${userToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      broadcaster_id: broadcasterId,
+      sender_id: senderId,
+      message,
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) console.warn("⚠️ Error enviando mensaje al chat:", data);
+  else console.log("💬 Mensaje enviado al chat:", message);
 }
 
 // Maneja todos los eventos EventSub importantes
@@ -51,11 +72,8 @@ async function handleTwitchWebhook(req, res, isDev = false) {
   switch (eventType) {
     case "channel.follow": {
       const follower = event.user_name;
-
       incrementFollower(follower);
-
       const state = getState();
-
       broadcast({
         type: "update",
         follow: follower,
@@ -65,9 +83,7 @@ async function handleTwitchWebhook(req, res, isDev = false) {
         },
         lastFollower: state.lastFollower,
       });
-
       broadcast({ type: "follow", name: follower });
-
       console.log(`Nuevo follower: ${follower}`);
       break;
     }
@@ -82,25 +98,54 @@ async function handleTwitchWebhook(req, res, isDev = false) {
     case "channel.subscription.gift": {
       const user = event.user_name;
       broadcast({ type: "gift-sub", name: user, total: event.total || 1 });
-      console.log(
-        `Se regaló una suscripción de ${user} a ${event.total || 1} usuarios`,
-      );
+      console.log(`Gift sub de ${user} a ${event.total || 1} usuarios`);
       break;
     }
 
     case "channel.subscription.message": {
       const user = event.user_name;
-
       broadcast({
         type: "resub",
         name: user,
         message: event.message || "",
         subPlan: event.sub_plan || "",
       });
+      console.log(`Resub de ${user}: ${event.sub_plan || ""}`);
+      break;
+    }
 
-      console.log(
-        `Resub de ${user}: ${event.sub_plan || ""} - mensaje: ${event.message || ""}`,
-      );
+    case "channel.chat.message": {
+      const text = event.message?.text?.trim().toLowerCase();
+      const broadcasterId = event.broadcaster_user_id;
+      const senderId = event.chatter_user_id;
+
+      // Necesitamos el userToken — lo pasamos desde server.js
+      const userToken = req.userToken;
+
+      if (text === "!github") {
+        await sendChatMessage(
+          broadcasterId,
+          senderId,
+          userToken,
+          "🐙 Mi GitHub: https://github.com/RubenMeju",
+        );
+      } else if (text === "!github-repo") {
+        await sendChatMessage(
+          broadcasterId,
+          senderId,
+          userToken,
+          "📁 Repo actual: visible en el overlay",
+        );
+      } else if (text === "!github-languages") {
+        await sendChatMessage(
+          broadcasterId,
+          senderId,
+          userToken,
+          "💻 Lenguajes: visible en el overlay",
+        );
+      }
+
+      console.log(`💬 Chat [${event.chatter_user_name}]: ${text}`);
       break;
     }
 

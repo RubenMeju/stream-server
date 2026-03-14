@@ -49,23 +49,36 @@ async function createAllEventSubSubscriptions(
   const existing = await getExistingSubscriptions(appToken);
 
   const events = [
+    // Alguien se suscribe al canal (sub nuevo)
     {
       type: "channel.subscribe",
       version: "1",
       condition: { broadcaster_user_id: broadcasterId },
       token: appToken,
     },
+    // Alguien regala suscripciones a otros usuarios
     {
       type: "channel.subscription.gift",
       version: "1",
       condition: { broadcaster_user_id: broadcasterId },
       token: appToken,
     },
+    // Alguien renueva su suscripción (resub) con mensaje
     {
       type: "channel.subscription.message",
       version: "1",
       condition: { broadcaster_user_id: broadcasterId },
       token: appToken,
+    },
+    // Mensajes del chat — usado para detectar comandos como !github
+    {
+      type: "channel.chat.message",
+      version: "1",
+      condition: {
+        broadcaster_user_id: broadcasterId,
+        user_id: moderatorId,
+      },
+      token: userToken,
     },
   ];
 
