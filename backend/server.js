@@ -46,34 +46,38 @@ app.post("/twitch/webhook", (req, res) => handleTwitchWebhook(req, res, true));
 //
 
 app.post("/github/webhook", async (req, res) => {
-  console.log("📦 GitHub webhook:", req.headers["x-github-event"]);
-  console.log("📦 Body keys:", Object.keys(req.body || {}));
   try {
     if (req.headers["x-github-event"] !== "push") {
       return res.sendStatus(200);
     }
 
     const repo = req.body.repository;
+    const headCommit = req.body.head_commit;
     if (!repo) return res.sendStatus(200);
 
-    const owner = repo.owner.login; // ✅ CORRECTO
-    const data = await getRepoData(owner, repo.name);
+    console.log(
+      "📡 Broadcasting:",
+      JSON.stringify({
+        repoName: repo.name,
+        commitMsg: headCommit?.message,
+        private: repo.private,
+      }),
+    );
 
     broadcast({
       type: "github-update",
       repo: {
-        name: data.name,
-        url: data.url,
-        private: data.private,
+        name: repo.name,
+        url: repo.html_url,
+        private: repo.private,
       },
       commit: {
-        title: data.lastCommit?.commit?.message || "Sin mensaje",
+        title: headCommit?.message || "Sin mensaje",
       },
-      totalCommits: data.totalCommits, // ✅ ahora sí
+      totalCommits: null,
     });
 
-    console.log("🚀 GitHub update:", data.name);
-
+    console.log("🚀 GitHub update:", repo.name);
     res.sendStatus(200);
   } catch (err) {
     console.error("Error GitHub webhook:", err.message);
@@ -201,53 +205,6 @@ async function pollFollowers(userToken, broadcasterId) {
     () => pollFollowers(userToken, broadcasterId),
     FOLLOWER_POLL_INTERVAL,
   );
-}
-
-//
-// ─────────────────────────────
-// GITHUB API FUNCTION
-// ─────────────────────────────
-//
-
-async function getRepoData(owner, repo) {
-  console.log("Buscando repo:", repo);
-  const headers = {
-    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-    "User-Agent": "overlay-app",
-  };
-
-  // Repo info
-  const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-    headers,
-  });
-
-  const repoData = await repoRes.json();
-  console.log("🐙 repoData:", repoData); // ← añade esto
-
-  // Último commit
-  const commitsRes = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/commits?per_page=1`,
-    { headers },
-  );
-
-  const commits = await commitsRes.json();
-  console.log("commits", commits);
-  // Total commits (desde header Link)
-  let totalCommits = 1;
-  const linkHeader = commitsRes.headers.get("link");
-
-  if (linkHeader) {
-    const match = linkHeader.match(/&page=(\d+)>; rel="last"/);
-    if (match) totalCommits = parseInt(match[1]);
-  }
-
-  return {
-    name: repoData.name,
-    url: repoData.html_url,
-    private: repoData.private,
-    totalCommits,
-    lastCommit: commits[0],
-  };
 }
 
 //
