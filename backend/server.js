@@ -222,33 +222,33 @@ async function pollFollowers(userToken, broadcasterId) {
 }
 
 // Borrar todas las suscripciones
-app.get("/delete-subs", async (req, res) => {
-  const appToken = await getAppToken();
-  const listRes = await fetch(
-    "https://api.twitch.tv/helix/eventsub/subscriptions",
-    {
-      headers: {
-        "Client-ID": process.env.CLIENT_ID,
-        Authorization: `Bearer ${appToken}`,
-      },
-    },
-  );
-  const { data } = await listRes.json();
+// app.get("/delete-subs", async (req, res) => {
+//   const appToken = await getAppToken();
+//   const listRes = await fetch(
+//     "https://api.twitch.tv/helix/eventsub/subscriptions",
+//     {
+//       headers: {
+//         "Client-ID": process.env.CLIENT_ID,
+//         Authorization: `Bearer ${appToken}`,
+//       },
+//     },
+//   );
+//   const { data } = await listRes.json();
 
-  for (const sub of data) {
-    await fetch(
-      `https://api.twitch.tv/helix/eventsub/subscriptions?id=${sub.id}`,
-      {
-        method: "DELETE",
-        headers: {
-          "Client-ID": process.env.CLIENT_ID,
-          Authorization: `Bearer ${appToken}`,
-        },
-      },
-    );
-    console.log("🗑️ Borrada:", sub.type);
-  }
-  res.send("Suscripciones borradas");
-});
+//   for (const sub of data) {
+//     await fetch(
+//       `https://api.twitch.tv/helix/eventsub/subscriptions?id=${sub.id}`,
+//       {
+//         method: "DELETE",
+//         headers: {
+//           "Client-ID": process.env.CLIENT_ID,
+//           Authorization: `Bearer ${appToken}`,
+//         },
+//       },
+//     );
+//     console.log("🗑️ Borrada:", sub.type);
+//   }
+//   res.send("Suscripciones borradas");
+// });
 
 initWebSocket(server, getState);

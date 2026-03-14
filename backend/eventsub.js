@@ -78,7 +78,7 @@ async function createAllEventSubSubscriptions(
         broadcaster_user_id: broadcasterId,
         user_id: broadcasterId,
       },
-      token: userToken,
+      token: appToken,
     },
   ];
 
