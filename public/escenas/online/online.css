@@ -6,12 +6,19 @@
   padding: 0;
 }
 
+/* ════════════════════════════════
+   VARIABLES
+════════════════════════════════ */
 :root {
   --blue: #00cfff;
   --blue-dim: #0099cc;
   --blue-glow: rgba(0, 207, 255, 0.4);
   --blue-soft: rgba(0, 207, 255, 0.12);
   --blue-line: rgba(0, 207, 255, 0.22);
+  --green: #00ff88;
+  --green-glow: rgba(0, 255, 136, 0.6);
+  --purple: #9146ff;
+  --purple-glow: rgba(145, 70, 255, 0.4);
   --bar-bg: rgba(4, 14, 22, 0.92);
   --font-mono: "Share Tech Mono", monospace;
   --font-disp: "Orbitron", sans-serif;
@@ -19,6 +26,9 @@
   --bar-h-bot: 38px;
 }
 
+/* ════════════════════════════════
+   BASE
+════════════════════════════════ */
 html,
 body {
   width: 1920px;
@@ -29,7 +39,9 @@ body {
   font-family: var(--font-mono);
 }
 
-/* ── SCANLINES sutiles ── */
+/* ════════════════════════════════
+   EFECTOS DE FONDO
+════════════════════════════════ */
 #scanlines {
   position: fixed;
   inset: 0;
@@ -44,7 +56,6 @@ body {
   z-index: 900;
 }
 
-/* ── SWEEP ── */
 #sweep {
   position: fixed;
   left: 0;
@@ -61,18 +72,10 @@ body {
   pointer-events: none;
   z-index: 800;
 }
-@keyframes sweep {
-  0% {
-    top: -1px;
-  }
-  100% {
-    top: 1080px;
-  }
-}
 
 /* ════════════════════════════════
-     BARRA SUPERIOR
-  ════════════════════════════════ */
+   BARRA SUPERIOR
+════════════════════════════════ */
 #top-bar {
   position: fixed;
   top: 0;
@@ -103,40 +106,8 @@ body {
   background: linear-gradient(to right, transparent, var(--blue), transparent);
   filter: blur(4px);
 }
-/* ── Contenedor para meta y último seguidor en la barra superior ── */
-#top-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  flex: 1;
-}
 
-/* Añadimos un contenedor horizontal para meta y último seguidor */
-#top-center #stream-meta {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  color: var(--blue-dim);
-  text-shadow: 0 0 6px var(--blue-glow);
-}
-
-/* Valor de la meta de seguidores */
-#follower-goal {
-  color: var(--blue);
-  font-weight: 700;
-}
-
-/* Último seguidor */
-#last-follower {
-  color: #00ff88; /* verde Twitch-like */
-  font-weight: 700;
-  text-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
-}
-
+/* ── Top izquierda ── */
 #top-left {
   display: flex;
   align-items: center;
@@ -155,13 +126,6 @@ body {
     0 0 40px rgba(0, 207, 255, 0.2);
 }
 
-.divider {
-  width: 1px;
-  height: 30px;
-  background: var(--blue-line);
-  flex-shrink: 0;
-}
-
 #live-badge {
   display: flex;
   align-items: center;
@@ -172,53 +136,99 @@ body {
   font-size: 11px;
   letter-spacing: 0.3em;
 }
+
 .live-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #00ff88;
+  background: var(--green);
   box-shadow: 0 0 10px rgba(0, 255, 136, 0.9);
   animation: live-pulse 1.6s ease-in-out infinite;
 }
-@keyframes live-pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.4;
-    transform: scale(0.8);
-  }
-}
+
 #live-text {
-  color: #00ff88;
+  color: var(--green);
 }
 
-#top-center {
+/* ── Stream meta (centro) ── */
+#stream-meta {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  flex: 1;
+  gap: 10px;
 }
 
-#stream-title {
-  font-family: var(--font-disp);
-  font-size: 15px;
+.meta-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 3px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.meta-label {
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.18em;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.meta-sep {
+  opacity: 0.3;
+}
+
+/* Bloque Twitch */
+.twitch-block {
+  border: 1px solid rgba(145, 70, 255, 0.35);
+  background: rgba(145, 70, 255, 0.07);
+}
+
+.twitch-block .meta-label {
+  color: var(--purple);
+  background: rgba(145, 70, 255, 0.18);
+}
+
+#follower-goal {
   color: var(--blue);
-  text-shadow: 0 0 10px var(--blue-glow);
+  font-weight: 700;
 }
 
-#stream-sub {
-  font-size: 10px;
-  letter-spacing: 0.3em;
+#last-follower {
+  color: var(--green);
+  font-weight: 700;
+  text-shadow: 0 0 8px var(--green-glow);
+}
+
+/* Bloque GitHub */
+.github-block {
+  border: 1px solid rgba(80, 200, 120, 0.35);
+  background: rgba(80, 200, 120, 0.07);
+}
+
+.github-block .meta-label {
+  color: #50c878;
+  background: rgba(80, 200, 120, 0.18);
+}
+
+#last-commit {
   color: var(--blue-dim);
-  opacity: 0.45;
 }
 
+#repo-info {
+  color: #50c878;
+  text-shadow: 0 0 6px rgba(80, 200, 120, 0.4);
+}
+
+.meta-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--blue-line);
+  flex-shrink: 0;
+}
+
+/* ── Top derecha ── */
 #top-right {
   display: flex;
   align-items: center;
@@ -233,21 +243,30 @@ body {
   align-items: flex-end;
   gap: 2px;
 }
+
 .stat-val {
   font-size: 16px;
   letter-spacing: 0.08em;
   color: var(--blue);
   text-shadow: 0 0 8px var(--blue-glow);
 }
+
 .stat-lbl {
   font-size: 9px;
   letter-spacing: 0.28em;
   opacity: 0.4;
 }
 
+.divider {
+  width: 1px;
+  height: 30px;
+  background: var(--blue-line);
+  flex-shrink: 0;
+}
+
 /* ════════════════════════════════
-     BORDES LATERALES
-  ════════════════════════════════ */
+   BORDES LATERALES
+════════════════════════════════ */
 .side-border {
   position: fixed;
   top: var(--bar-h-top);
@@ -265,6 +284,7 @@ body {
   opacity: 0;
   animation: fadeIn 0.8s ease forwards 0.5s;
 }
+
 .side-border.left {
   left: 0;
 }
@@ -278,25 +298,26 @@ body {
   writing-mode: vertical-rl;
   font-size: 9px;
   letter-spacing: 0.35em;
-  opacity: 0.15;
-  z-index: 601;
-  white-space: nowrap;
   color: var(--blue);
+  white-space: nowrap;
+  z-index: 601;
   opacity: 0;
   animation: fadeIn 1s ease forwards 0.7s;
 }
+
 .side-label.left {
   left: 8px;
   transform: translateY(-50%) rotate(180deg);
 }
+
 .side-label.right {
   right: 8px;
   transform: translateY(-50%);
 }
 
 /* ════════════════════════════════
-     ESQUINAS DEL ÁREA DE VÍDEO
-  ════════════════════════════════ */
+   ESQUINAS DEL ÁREA DE VÍDEO
+════════════════════════════════ */
 .vid-corner {
   position: fixed;
   width: 32px;
@@ -305,6 +326,7 @@ body {
   opacity: 0;
   animation: fadeIn 0.8s ease forwards 0.5s;
 }
+
 .vid-corner::before,
 .vid-corner::after {
   content: "";
@@ -312,6 +334,7 @@ body {
   background: var(--blue);
   box-shadow: 0 0 8px var(--blue-glow);
 }
+
 .vid-corner::before {
   width: 100%;
   height: 2px;
@@ -346,8 +369,8 @@ body {
 }
 
 /* ════════════════════════════════
-     BARRA INFERIOR
-  ════════════════════════════════ */
+   BARRA INFERIOR
+════════════════════════════════ */
 #bottom-bar {
   position: fixed;
   bottom: 0;
@@ -398,6 +421,7 @@ body {
   align-items: center;
   position: relative;
 }
+
 #ticker-text {
   position: absolute;
   white-space: nowrap;
@@ -405,14 +429,6 @@ body {
   letter-spacing: 0.14em;
   opacity: 0.45;
   animation: ticker 40s linear infinite;
-}
-@keyframes ticker {
-  0% {
-    transform: translateX(1920px);
-  }
-  100% {
-    transform: translateX(-100%);
-  }
 }
 
 #bottom-stats {
@@ -424,6 +440,7 @@ body {
   border-left: 1px solid var(--blue-line);
   margin-left: 18px;
 }
+
 .b-item {
   font-size: 10px;
   letter-spacing: 0.15em;
@@ -432,6 +449,7 @@ body {
   align-items: center;
   gap: 6px;
 }
+
 .b-dot {
   width: 5px;
   height: 5px;
@@ -439,15 +457,112 @@ body {
   background: var(--blue);
   opacity: 0.7;
 }
+
+/* ════════════════════════════════
+   FLASH MESSAGES
+════════════════════════════════ */
+.flash-msg {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--green);
+  padding: 8px 16px;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  border: 1px solid var(--green);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  animation: fadeInOut 2.5s forwards;
+}
+
+.flash-msg.subscribe {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.flash-msg.gift-sub {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+.flash-msg.commit {
+  border-color: #00ffa6;
+  color: #00ffa6;
+}
+
 #last-follower.flash {
   text-shadow:
-    0 0 12px #00ff88,
-    0 0 24px rgba(0, 255, 136, 0.6);
+    0 0 12px var(--green),
+    0 0 24px var(--green-glow);
   transition: all 0.4s ease;
 }
-.flash {
-  animation: flash 0.8s ease-in-out;
+
+/* ════════════════════════════════
+   ANIMACIONES
+════════════════════════════════ */
+@keyframes sweep {
+  0% {
+    top: -1px;
+  }
+  100% {
+    top: 1080px;
+  }
 }
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes ticker {
+  0% {
+    transform: translateX(1920px);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes flash {
   0%,
   100% {
@@ -460,23 +575,6 @@ body {
   }
 }
 
-.flash-msg {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.1);
-  color: #0f0;
-  padding: 8px 16px;
-  font-family: "Share Tech Mono", monospace;
-  font-size: 18px;
-  border: 1px solid #0f0;
-  border-radius: 4px;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0;
-  animation: fadeInOut 2.5s forwards;
-}
 @keyframes fadeInOut {
   0% {
     opacity: 0;
@@ -490,36 +588,5 @@ body {
   100% {
     opacity: 0;
     transform: translateX(-50%) translateY(-20px);
-  }
-}
-/* ════════════════════════════════
-     ANIMACIONES
-  ════════════════════════════════ */
-@keyframes fadeSlideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes fadeSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 }

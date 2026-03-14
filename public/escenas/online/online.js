@@ -60,6 +60,7 @@ const ws = new WebSocket(
 ws.onopen = () => console.log("Conectado al WebSocket del overlay");
 
 ws.onmessage = (event) => {
+  console.log("MENSAJE RECIBIDO:", event.data);
   const data = JSON.parse(event.data);
   // ← añade este bloque
   if (data.type === "init") {
@@ -104,6 +105,23 @@ ws.onmessage = (event) => {
     const msg = `Gift Sub de ${data.name}, total: ${data.total}`;
     console.log(msg);
     flashMessage(msg, "gift-sub");
+  }
+
+  // ─────────────── GITHUB UPDATE ───────────────
+  if (data.type === "github-update") {
+    const commitEl = document.getElementById("last-commit");
+    const repoEl = document.getElementById("repo-info");
+
+    if (commitEl) {
+      commitEl.textContent = `Commit: ${data.commit.title}`;
+    }
+
+    if (repoEl) {
+      const { name, private: isPrivate } = data.repo;
+      repoEl.textContent = isPrivate
+        ? `Repo: ${name} 🔒 · commits: ${data.totalCommits}`
+        : `Repo: ${name} · commits: ${data.totalCommits}`;
+    }
   }
 
   // ─────────────── FUNCIÓN AUXILIAR PARA FLASH ───────────────

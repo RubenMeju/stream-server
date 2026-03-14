@@ -1,7 +1,8 @@
 require("dotenv").config({ path: ".env.local" });
+
 const express = require("express");
 const bodyParser = require("body-parser");
-const { broadcast } = require("./websocket");
+const { broadcast, initWebSocket } = require("./websocket");
 
 const {
   PORT,
@@ -20,20 +21,71 @@ const {
   getAppToken,
   validateAndRefreshToken,
 } = require("./twitch");
-const { initWebSocket } = require("./websocket");
+
 const { handleTwitchWebhook } = require("./webhook");
 const { createAllEventSubSubscriptions } = require("./eventsub");
 
 const app = express();
-
 app.use(express.static(PUBLIC_PATH));
 app.use(bodyParser.json());
 
-// token activo en memoria
 let activeUserToken = USER_TOKEN;
 
-// endpoint webhook Twitch
+//
+// ─────────────────────────────
+// TWITCH WEBHOOK
+// ─────────────────────────────
+//
+
 app.post("/twitch/webhook", (req, res) => handleTwitchWebhook(req, res, true));
+
+//
+// ─────────────────────────────
+// GITHUB WEBHOOK
+// ─────────────────────────────
+//
+
+app.post("/github/webhook", async (req, res) => {
+  console.log("📦 GitHub webhook:", req.headers["x-github-event"]);
+  console.log("📦 Body keys:", Object.keys(req.body || {}));
+  try {
+    if (req.headers["x-github-event"] !== "push") {
+      return res.sendStatus(200);
+    }
+
+    const repo = req.body.repository;
+    if (!repo) return res.sendStatus(200);
+
+    const owner = repo.owner.login; // ✅ CORRECTO
+    const data = await getRepoData(owner, repo.name);
+
+    broadcast({
+      type: "github-update",
+      repo: {
+        name: data.name,
+        url: data.url,
+        private: data.private,
+      },
+      commit: {
+        title: data.lastCommit?.commit?.message || "Sin mensaje",
+      },
+      totalCommits: data.totalCommits, // ✅ ahora sí
+    });
+
+    console.log("🚀 GitHub update:", data.name);
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("Error GitHub webhook:", err.message);
+    res.sendStatus(500);
+  }
+});
+
+//
+// ─────────────────────────────
+// AUTH CALLBACK (TWITCH)
+// ─────────────────────────────
+//
 
 app.get("/auth/callback", async (req, res) => {
   const { code } = req.query;
@@ -51,41 +103,42 @@ app.get("/auth/callback", async (req, res) => {
     method: "POST",
     body: params,
   });
+
   const data = await r.json();
-  console.log("USER TOKEN:", data.access_token);
-  console.log("REFRESH TOKEN:", data.refresh_token);
+
   res.send(`
     <b>Access Token:</b> ${data.access_token}<br><br>
-    <b>Refresh Token:</b> ${data.refresh_token}<br><br>
-    Copia ambos en .env.local como USER_TOKEN y REFRESH_TOKEN
+    <b>Refresh Token:</b> ${data.refresh_token}
   `);
 });
 
-let server = app.listen(PORT, async () => {
+//
+// ─────────────────────────────
+// START SERVER
+// ─────────────────────────────
+//
+
+const server = app.listen(PORT, async () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
 
   try {
-    // 🔹 obtener app token
     const appToken = await getAppToken();
 
-    // 🔹 validar y refrescar user token si es necesario
-    const { accessToken, refreshToken } = await validateAndRefreshToken(
+    const { accessToken } = await validateAndRefreshToken(
       USER_TOKEN,
       REFRESH_TOKEN,
     );
+
     activeUserToken = accessToken;
 
-    // 🔹 obtener IDs
     const broadcasterId = await getBroadcasterId(appToken, CHANNEL_LOGIN);
+
     const moderatorId = await getBroadcasterId(appToken, MODERATOR_LOGIN);
 
     console.log("Broadcaster ID:", broadcasterId);
-    console.log("Moderator ID:", moderatorId);
 
-    // 🔹 polling followers
     pollFollowers(activeUserToken, broadcasterId);
 
-    // 🔹 crear suscripciones
     const callbackUrl = "https://twitch-a7sp.onrender.com/twitch/webhook";
 
     await createAllEventSubSubscriptions(
@@ -103,6 +156,12 @@ let server = app.listen(PORT, async () => {
   }
 });
 
+//
+// ─────────────────────────────
+// FOLLOWERS POLLING
+// ─────────────────────────────
+//
+
 async function pollFollowers(userToken, broadcasterId) {
   try {
     const res = await fetch(
@@ -114,11 +173,13 @@ async function pollFollowers(userToken, broadcasterId) {
         },
       },
     );
+
     const data = await res.json();
 
-    if (res.ok && Array.isArray(data.data) && data.data.length > 0) {
+    if (res.ok && data.data?.length) {
       const lastFollower = data.data[0].user_name;
       const totalFollowers = data.total || 0;
+
       setFollowers(totalFollowers, lastFollower);
 
       const meta = calcularMeta(totalFollowers);
@@ -130,7 +191,6 @@ async function pollFollowers(userToken, broadcasterId) {
           current: totalFollowers,
           target: meta,
         },
-        lastFollower,
       });
     }
   } catch (err) {
@@ -143,5 +203,57 @@ async function pollFollowers(userToken, broadcasterId) {
   );
 }
 
-// WebSocket overlay
+//
+// ─────────────────────────────
+// GITHUB API FUNCTION
+// ─────────────────────────────
+//
+
+async function getRepoData(owner, repo) {
+  console.log("Buscando repo:", repo);
+  const headers = {
+    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+    "User-Agent": "overlay-app",
+  };
+
+  // Repo info
+  const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+    headers,
+  });
+
+  const repoData = await repoRes.json();
+  console.log("🐙 repoData:", repoData); // ← añade esto
+
+  // Último commit
+  const commitsRes = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/commits?per_page=1`,
+    { headers },
+  );
+
+  const commits = await commitsRes.json();
+  console.log("commits", commits);
+  // Total commits (desde header Link)
+  let totalCommits = 1;
+  const linkHeader = commitsRes.headers.get("link");
+
+  if (linkHeader) {
+    const match = linkHeader.match(/&page=(\d+)>; rel="last"/);
+    if (match) totalCommits = parseInt(match[1]);
+  }
+
+  return {
+    name: repoData.name,
+    url: repoData.html_url,
+    private: repoData.private,
+    totalCommits,
+    lastCommit: commits[0],
+  };
+}
+
+//
+// ─────────────────────────────
+// WEBSOCKET
+// ─────────────────────────────
+//
+
 initWebSocket(server, getState);
