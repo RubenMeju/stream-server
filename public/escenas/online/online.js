@@ -124,6 +124,43 @@ ws.onmessage = (event) => {
     }
   }
 
+  // ─────────────── VSCODE UPDATE ───────────────
+  if (data.type === "vscode-update") {
+    const langMap = {
+      typescript: { label: "TYPESCRIPT", color: "#3178C6" },
+      javascript: { label: "JAVASCRIPT", color: "#F7DF1E" },
+      python: { label: "PYTHON", color: "#FFD43B" },
+      css: { label: "CSS", color: "#264DE4" },
+      html: { label: "HTML", color: "#E34F26" },
+      json: { label: "JSON", color: "#00cfff" },
+      jsx: { label: "REACT JSX", color: "#61DAFB" },
+      tsx: { label: "REACT TSX", color: "#3178C6" },
+    };
+
+    const lang = langMap[data.language] || {
+      label: data.language?.toUpperCase() || "--",
+      color: "#00cfff",
+    };
+    const fileName = data.activeFile ? data.activeFile.split("/").pop() : "--";
+
+    const left = document.getElementById("side-label-left");
+    const right = document.getElementById("side-label-right");
+
+    if (left) {
+      left.textContent = `${lang.label} :: ${fileName} :: ${data.project}`;
+      left.style.color = lang.color;
+      left.style.textShadow = `0 0 8px ${lang.color}`;
+      left.style.opacity = "0.6";
+    }
+
+    if (right) {
+      right.textContent = `${data.project} :: ${fileName} :: ${lang.label}`;
+      right.style.color = lang.color;
+      right.style.textShadow = `0 0 8px ${lang.color}`;
+      right.style.opacity = "0.6";
+    }
+  }
+
   // ─────────────── FUNCIÓN AUXILIAR PARA FLASH ───────────────
   function flashMessage(msg, cls) {
     const container = document.createElement("div");

@@ -251,4 +251,33 @@ async function pollFollowers(userToken, broadcasterId) {
 //   res.send("Suscripciones borradas");
 // });
 
+//
+// ─────────────────────────────
+// VSCODE EXTENSION
+// ─────────────────────────────
+//
+
+let vscodeState = {
+  project: "--",
+  activeFile: "--",
+  language: "--",
+  currentLine: 0,
+  totalFiles: 0,
+  totalLines: 0,
+};
+
+app.post("/vscode", (req, res) => {
+  vscodeState = req.body;
+
+  broadcast({
+    type: "vscode-update",
+    ...vscodeState,
+  });
+
+  console.log(
+    `💻 VSCode update: ${vscodeState.project} | ${vscodeState.activeFile} | líneas archivo: ${vscodeState.currentLine}/${vscodeState.totalLines} | archivos: ${vscodeState.totalFiles}`,
+  );
+  res.sendStatus(200);
+});
+
 initWebSocket(server, getState);
