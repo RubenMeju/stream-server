@@ -331,57 +331,83 @@ app.get("/kick/auth", (req, res) => {
 });
 
 app.get("/kick/callback", async (req, res) => {
-  const { code, state } = req.query;
-  if (!code) return res.send("Sin código");
-
-  const codeVerifier = kickVerifiers.get(state);
-  kickVerifiers.delete(state);
-
-  if (!codeVerifier) return res.send("Code verifier no encontrado");
-
-  // ← intenta decodificar el code si viene en base64
-  let decodedCode = code;
   try {
-    const decoded = Buffer.from(code, "base64").toString("utf8");
-    if (decoded.match(/^[0-9A-Z]{26}$/)) {
-      decodedCode = decoded;
-      console.log("code decodificado:", decodedCode);
+    const { code, state } = req.query;
+
+    // Validar parámetros
+    if (!code || !state) {
+      return res.status(400).send("Faltan parámetros OAuth");
     }
-  } catch {}
 
-  console.log("code original:", code);
-  console.log("code usado:", decodedCode);
-  console.log("codeVerifier:", codeVerifier);
+    const codeVerifier = kickVerifiers.get(state);
+    kickVerifiers.delete(state);
 
-  const body = new URLSearchParams();
-  body.append("grant_type", "authorization_code");
-  body.append("client_id", process.env.KICK_CLIENT_ID);
-  body.append("client_secret", process.env.KICK_CLIENT_SECRET);
-  body.append("redirect_uri", "https://twitch-a7sp.onrender.com/kick/callback");
-  body.append("code_verifier", codeVerifier);
-  body.append("code", decodedCode);
+    if (!codeVerifier) {
+      return res.status(400).send("State inválido o expirado");
+    }
 
-  const r = await fetch("https://id.kick.com/oauth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
+    console.log("Kick OAuth code:", code);
 
-  console.log("Kick token status:", r.status);
-  const text = await r.text();
-  console.log("Kick token raw:", text);
+    // Construir body OAuth
+    const body = new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: process.env.KICK_CLIENT_ID,
+      client_secret: process.env.KICK_CLIENT_SECRET,
+      redirect_uri: "https://twitch-a7sp.onrender.com/kick/callback",
+      code_verifier: codeVerifier,
+      code: code,
+    });
 
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    data = {};
+    // Petición a Kick
+    const response = await fetch("https://id.kick.com/oauth/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+    });
+
+    const text = await response.text();
+
+    console.log("Kick token status:", response.status);
+    console.log("Kick token raw:", text);
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return res.status(500).send(`
+        Error al parsear respuesta de Kick<br><br>
+        Raw response:<br>${text}
+      `);
+    }
+
+    if (!response.ok) {
+      return res.status(response.status).send(`
+        Error OAuth Kick<br><br>
+        ${text}
+      `);
+    }
+
+    // Mostrar tokens (solo para debug)
+    res.send(`
+      <h2>Kick OAuth completado</h2>
+      <b>Access Token:</b><br>
+      <code>${data.access_token}</code><br><br>
+
+      <b>Refresh Token:</b><br>
+      <code>${data.refresh_token}</code><br><br>
+
+      <b>Expires In:</b> ${data.expires_in}<br><br>
+      <b>Scope:</b> ${data.scope}<br><br>
+
+      <hr>
+      Raw response:<br>
+      <pre>${JSON.stringify(data, null, 2)}</pre>
+    `);
+  } catch (err) {
+    console.error("Kick OAuth error:", err);
+    res.status(500).send("Error interno OAuth Kick");
   }
-
-  res.send(`
-    <b>Access Token:</b> ${data.access_token}<br><br>
-    <b>Refresh Token:</b> ${data.refresh_token}<br><br>
-    <b>Raw:</b> ${text}
-  `);
 });
 initWebSocket(server, getState);
