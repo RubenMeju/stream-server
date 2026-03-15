@@ -292,81 +292,62 @@ app.post("/highlight", (req, res) => {
   res.sendStatus(200);
 });
 
-
-
 //
 // ─────────────────────────────
-// KICK AUTH CALLBACK
+// KICK AUTH
 // ─────────────────────────────
 //
+
+const crypto = require("crypto");
+let kickCodeVerifier = "";
+
+app.get("/kick/auth", (req, res) => {
+  // Generar PKCE
+  kickCodeVerifier = crypto.randomBytes(32).toString("base64url");
+  const codeChallenge = crypto
+    .createHash("sha256")
+    .update(kickCodeVerifier)
+    .digest("base64url");
+
+  const state = crypto.randomBytes(16).toString("hex");
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: process.env.KICK_CLIENT_ID,
+    redirect_uri: "https://twitch-a7sp.onrender.com/kick/callback",
+    scope: "user:read channel:read:chat channel:write:chat events:subscribe",
+    code_challenge: codeChallenge,
+    code_challenge_method: "S256",
+    state,
+  });
+
+  res.redirect(`https://id.kick.com/oauth/authorize?${params}`);
+});
 
 app.get("/kick/callback", async (req, res) => {
   const { code } = req.query;
   if (!code) return res.send("Sin código");
 
   const params = new URLSearchParams({
+    grant_type: "authorization_code",
     client_id: process.env.KICK_CLIENT_ID,
     client_secret: process.env.KICK_CLIENT_SECRET,
-    code,
-    grant_type: "authorization_code",
     redirect_uri: "https://twitch-a7sp.onrender.com/kick/callback",
+    code_verifier: kickCodeVerifier,
+    code,
   });
 
   const r = await fetch("https://id.kick.com/oauth/token", {
     method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: params,
   });
 
   const data = await r.json();
-  console.log("Kick token response:", data);
+  console.log("Kick token:", data);
 
   res.send(`
     <b>Access Token:</b> ${data.access_token}<br><br>
     <b>Refresh Token:</b> ${data.refresh_token}
   `);
-});
-
-//
-// ─────────────────────────────
-// KICK WEBHOOK
-// ─────────────────────────────
-//
-
-app.post("/kick/webhook", async (req, res) => {
-  try {
-    const event = req.body;
-    console.log("📨 Kick event:", JSON.stringify(event).slice(0, 200));
-
-    const eventType = event?.type || event?.event;
-
-    if (eventType === "chat_message" || eventType === "channel.chat.message") {
-      const user = event?.data?.sender?.username || event?.sender?.username;
-      const text = event?.data?.content || event?.content;
-      const color = event?.data?.sender?.identity?.color || "#00cfff";
-
-      broadcast({
-        type: "chat-message",
-        user,
-        text,
-        color,
-        platform: "kick",
-      });
-
-      console.log(`💬 Kick Chat [${user}]: ${text}`);
-    }
-
-    if (eventType === "channel.follow" || eventType === "follow") {
-      const follower = event?.data?.follower?.username || event?.follower?.username;
-      if (follower) {
-        broadcast({ type: "follow", name: follower, platform: "kick" });
-        console.log(`Nuevo follower Kick: ${follower}`);
-      }
-    }
-
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("Error Kick webhook:", err.message);
-    res.sendStatus(500);
-  }
 });
 initWebSocket(server, getState);
