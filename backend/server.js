@@ -311,11 +311,16 @@ let kickCodeVerifier = "";
 const kickVerifiers = new Map();
 
 app.get("/kick/auth", (req, res) => {
-  const codeVerifier = crypto.randomBytes(32).toString("base64url");
+  // RFC 7636 compliant code_verifier
+  const codeVerifier = crypto.randomBytes(32).toString("hex"); // ← hex en vez de base64url
+
   const codeChallenge = crypto
     .createHash("sha256")
     .update(codeVerifier)
-    .digest("base64url");
+    .digest("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, ""); // ← base64url sin padding
 
   const state = crypto.randomBytes(16).toString("hex");
   kickVerifiers.set(state, codeVerifier);
