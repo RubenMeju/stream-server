@@ -343,12 +343,21 @@ app.get("/kick/callback", async (req, res) => {
     body: params,
   });
 
-  const data = await r.json();
-  // console.log("Kick token:", data);
+  console.log("Kick token status:", r.status); // ← añade esto
+  const text = await r.text();
+  console.log("Kick token raw:", text); // ← y esto
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = {};
+  }
 
   res.send(`
     <b>Access Token:</b> ${data.access_token}<br><br>
-    <b>Refresh Token:</b> ${data.refresh_token}
+    <b>Refresh Token:</b> ${data.refresh_token}<br><br>
+    <b>Raw:</b> ${text}
   `);
 });
 initWebSocket(server, getState);
