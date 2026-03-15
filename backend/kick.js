@@ -8,9 +8,30 @@ const KICK_EVENTS = [
 ];
 
 async function createKickEventSubscriptions(accessToken) {
-  console.log("🟢 Creando suscripciones de Kick...");
+  console.log("🟢 Comprobando suscripciones de Kick...");
 
   try {
+    // Verificar si ya existen
+    const checkRes = await fetch(
+      "https://api.kick.com/public/v1/events/subscriptions",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    const checkData = await checkRes.json();
+
+    if (checkData?.data?.length > 0) {
+      console.log(
+        `ℹ️ Suscripciones Kick ya existen (${checkData.data.length})`,
+      );
+      return;
+    }
+
+    // Crear si no existen
     const res = await fetch(
       "https://api.kick.com/public/v1/events/subscriptions",
       {
@@ -27,7 +48,7 @@ async function createKickEventSubscriptions(accessToken) {
       },
     );
 
-    if (res.status === 204) {
+    if (res.status === 204 || res.status === 200) {
       console.log("✅ Suscripciones Kick creadas correctamente");
     } else {
       const data = await res.json();
