@@ -50,67 +50,92 @@ app.post("/twitch/webhook", (req, res) => {
 // ─────────────────────────────
 // KICK WEBHOOK
 // ─────────────────────────────
-app.post("/kick/webhook", async (req, res) => {
-  try {
-    const eventType = req.headers["kick-event-type"];
-    const body = req.body;
+app.post(
+  "/kick/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    try {
+      console.log("📨 Kick webhook recibido");
+      console.log("Headers:", JSON.stringify(req.headers).slice(0, 300));
 
-    console.log("📨 Kick event:", eventType);
+      const eventType = req.headers["kick-event-type"];
 
-    switch (eventType) {
-      case "chat.message.sent": {
-        const user = body.sender?.username;
-        const text = body.content;
-        const color = body.sender?.identity?.username_color || "#00ff88"; // ← campo correcto
-
-        broadcast({
-          type: "chat-message",
-          user,
-          text,
-          color,
-          platform: "kick",
-        });
-        console.log(`💬 Kick Chat [${user}]: ${text}`);
-        break;
+      let body;
+      try {
+        body = JSON.parse(req.body);
+      } catch {
+        console.warn("⚠️ No se pudo parsear el body de Kick");
+        return res.sendStatus(200);
       }
 
-      case "channel.followed": {
-        const follower = body.follower?.username;
-        if (follower) {
-          broadcast({ type: "follow", name: follower, platform: "kick" });
-          console.log(`💚 Kick Follow: ${follower}`);
+      console.log("📨 Kick event:", eventType);
+      console.log("📨 Kick body:", JSON.stringify(body).slice(0, 200));
+
+      switch (eventType) {
+        case "chat.message.sent": {
+          const user = body.sender?.username;
+          const text = body.content;
+          const color = body.sender?.identity?.username_color || "#00ff88";
+
+          broadcast({
+            type: "chat-message",
+            user,
+            text,
+            color,
+            platform: "kick",
+          });
+          console.log(`💬 Kick Chat [${user}]: ${text}`);
+          break;
         }
-        break;
+
+        case "channel.followed": {
+          const follower = body.follower?.username;
+          if (follower) {
+            broadcast({ type: "follow", name: follower, platform: "kick" });
+            console.log(`💚 Kick Follow: ${follower}`);
+          }
+          break;
+        }
+
+        case "channel.subscription.new":
+        case "channel.subscription.renewal": {
+          const user = body.subscriber?.username;
+          broadcast({ type: "subscribe", name: user, platform: "kick" });
+          console.log(`💚 Kick Sub: ${user}`);
+          break;
+        }
+
+        case "channel.subscription.gifts": {
+          const gifter = body.gifter?.username || "Anónimo";
+          const total = body.giftees?.length || 1;
+          broadcast({
+            type: "gift-sub",
+            name: gifter,
+            total,
+            platform: "kick",
+          });
+          console.log(`💚 Kick Gift Sub: ${gifter} x${total}`);
+          break;
+        }
+
+        case "livestream.status.updated": {
+          console.log(`📺 Kick stream ${body.is_live ? "ONLINE" : "OFFLINE"}`);
+          break;
+        }
+
+        default:
+          console.log("Kick evento no manejado:", eventType);
+          break;
       }
 
-      case "channel.subscription.new":
-      case "channel.subscription.renewal": {
-        const user = body.subscriber?.username;
-        broadcast({ type: "subscribe", name: user, platform: "kick" });
-        console.log(`💚 Kick Sub: ${user}`);
-        break;
-      }
-
-      case "channel.subscription.gifts": {
-        const gifter = body.gifter?.username || "Anónimo";
-        const total = body.giftees?.length || 1;
-        broadcast({ type: "gift-sub", name: gifter, total, platform: "kick" });
-        console.log(`💚 Kick Gift Sub: ${gifter} x${total}`);
-        break;
-      }
-
-      case "livestream.status.updated": {
-        console.log(`📺 Kick stream ${body.is_live ? "ONLINE" : "OFFLINE"}`);
-        break;
-      }
+      res.sendStatus(200);
+    } catch (err) {
+      console.error("Error Kick webhook:", err.message);
+      res.sendStatus(500);
     }
+  },
+);
 
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("Error Kick webhook:", err.message);
-    res.sendStatus(500);
-  }
-});
 //
 // ─────────────────────────────
 // GITHUB WEBHOOK
