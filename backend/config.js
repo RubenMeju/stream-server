@@ -15,4 +15,9 @@ module.exports = {
   WEBHOOK_SECRET: process.env.WEBHOOK_SECRET || "secret123",
   PUBLIC_PATH: path.join(__dirname, "../public"),
   PORT: process.env.PORT || 3000,
+
+  // CONFIG DE KICK
+  KICK_CLIENT_ID: process.env.KICK_CLIENT_ID,
+  KICK_CLIENT_SECRET: process.env.KICK_CLIENT_SECRET,
+  KICK_CHANNEL: process.env.KICK_CHANNEL || "mejudev",
 };

@@ -1,3 +1,4 @@
+//al final no uso este archivo, antes de eliminar comprobar q no rompe nada
 const { exec } = require("child_process");
 const { broadcast } = require("./websocket");
 
