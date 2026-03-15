@@ -24,7 +24,7 @@ const {
   validateAndRefreshToken,
 } = require("./twitch");
 
-const createKickEventSubscriptions = require("./kick");
+const { createKickEventSubscriptions } = require("./kick");
 
 const { handleTwitchWebhook } = require("./webhook");
 const { createAllEventSubSubscriptions } = require("./eventsub");
