@@ -302,19 +302,27 @@ app.post("/highlight", (req, res) => {
 
 const kickVerifiers = new Map();
 
-app.get("/kick/auth", (req, res) => {
-  // RFC 7636 compliant code_verifier
-  const codeVerifier = crypto.randomBytes(32).toString("hex"); // ← hex en vez de base64url
-
-  const codeChallenge = crypto
-    .createHash("sha256")
-    .update(codeVerifier)
-    .digest("base64")
+function base64url(buffer) {
+  return buffer
+    .toString("base64")
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
-    .replace(/=/g, ""); // ← base64url sin padding
+    .replace(/=/g, "");
+}
+
+/* =========================
+   KICK AUTH
+========================= */
+
+app.get("/kick/auth", (req, res) => {
+  const codeVerifier = base64url(crypto.randomBytes(32));
+
+  const codeChallenge = base64url(
+    crypto.createHash("sha256").update(codeVerifier).digest(),
+  );
 
   const state = crypto.randomBytes(16).toString("hex");
+
   kickVerifiers.set(state, codeVerifier);
 
   const params = new URLSearchParams({
@@ -327,37 +335,52 @@ app.get("/kick/auth", (req, res) => {
     state,
   });
 
-  res.redirect(`https://id.kick.com/oauth/authorize?${params}`);
+  const url = `https://id.kick.com/oauth/authorize?${params.toString()}`;
+
+  console.log("Redirect OAuth Kick:", url);
+
+  res.redirect(url);
 });
+
+/* =========================
+   KICK CALLBACK
+========================= */
 
 app.get("/kick/callback", async (req, res) => {
   try {
     const { code, state } = req.query;
 
     if (!code || !state) {
-      return res.status(400).send("Faltan parámetros OAuth");
+      return res.status(400).send("OAuth error: parámetros faltantes");
     }
 
     const codeVerifier = kickVerifiers.get(state);
     kickVerifiers.delete(state);
 
     if (!codeVerifier) {
-      return res.status(400).send("State inválido o expirado");
+      return res.status(400).send("OAuth error: state inválido o expirado");
     }
 
     console.log("Kick code recibido:", code);
 
-    // 🔧 FIX Kick base64 code
+    /* =========================
+       FIX KICK CODE
+    ========================= */
+
     let finalCode = code;
 
     try {
       const decoded = Buffer.from(code, "base64").toString("utf8");
 
-      if (/^[0-9A-HJKMNP-TV-Z]{26}$/.test(decoded)) {
+      if (/^[0-9A-HJKMNP-TV-Z]{26}$/i.test(decoded)) {
         finalCode = decoded;
         console.log("Kick code decodificado:", finalCode);
       }
     } catch {}
+
+    /* =========================
+       TOKEN REQUEST
+    ========================= */
 
     const body = new URLSearchParams({
       grant_type: "authorization_code",
@@ -376,18 +399,58 @@ app.get("/kick/callback", async (req, res) => {
       body: body.toString(),
     });
 
-    const text = await response.text();
-    console.log("Kick token raw:", text);
+    const raw = await response.text();
 
-    const data = JSON.parse(text);
+    console.log("Kick token status:", response.status);
+    console.log("Kick token raw:", raw);
+
+    let data;
+
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      return res.status(500).send(`
+        Error parseando respuesta de Kick
+        <pre>${raw}</pre>
+      `);
+    }
+
+    if (!response.ok) {
+      return res.status(response.status).send(`
+        Error OAuth Kick
+        <pre>${JSON.stringify(data, null, 2)}</pre>
+      `);
+    }
+
+    /* =========================
+       SUCCESS
+    ========================= */
 
     res.send(`
       <h2>Kick OAuth completado</h2>
+
+      <b>Access Token</b><br>
+      <code>${data.access_token}</code><br><br>
+
+      <b>Refresh Token</b><br>
+      <code>${data.refresh_token}</code><br><br>
+
+      <b>Expires In</b><br>
+      ${data.expires_in}<br><br>
+
+      <b>Scope</b><br>
+      ${data.scope}<br><br>
+
+      <hr>
       <pre>${JSON.stringify(data, null, 2)}</pre>
     `);
   } catch (err) {
     console.error("Kick OAuth error:", err);
-    res.status(500).send("Error interno OAuth Kick");
+
+    res.status(500).send(`
+      Error interno OAuth Kick
+      <pre>${err.stack}</pre>
+    `);
   }
 });
 initWebSocket(server, getState);
