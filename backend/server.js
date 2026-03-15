@@ -280,4 +280,15 @@ app.post("/vscode", (req, res) => {
   res.sendStatus(200);
 });
 
+//
+// ─────────────────────────────
+// HIGHLIGHT MENSAJE CHAT
+// ─────────────────────────────
+//
+
+app.post("/highlight", (req, res) => {
+  broadcast({ type: "highlight-message", ...req.body });
+  console.log(`⭐ Highlight: [${req.body.user}]: ${req.body.text}`);
+  res.sendStatus(200);
+});
 initWebSocket(server, getState);

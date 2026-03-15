@@ -62,7 +62,6 @@ ws.onopen = () => console.log("Conectado al WebSocket del overlay");
 ws.onmessage = (event) => {
   console.log("MENSAJE RECIBIDO:", event.data);
   const data = JSON.parse(event.data);
-  // ← añade este bloque
   if (data.type === "init") {
     const elFollower = document.getElementById("last-follower");
     if (elFollower && data.state?.lastFollower) {
@@ -75,6 +74,7 @@ ws.onmessage = (event) => {
       elGoal.textContent = `Seguidores ${data.state.followerCount} / ${meta}`;
     }
   }
+
   // ─────────────── ÚLTIMO SEGUIDOR ───────────────
   if (data.type === "update" && data.follow) {
     const el = document.getElementById("last-follower");
@@ -105,6 +105,29 @@ ws.onmessage = (event) => {
     const msg = `Gift Sub de ${data.name}, total: ${data.total}`;
     console.log(msg);
     flashMessage(msg, "gift-sub");
+  }
+
+  // ─────────────── HIGHLIGHT MENSAJE CHAT───────────────
+  if (data.type === "highlight-message") {
+    const container = document.getElementById("highlight-message");
+    const userEl = document.getElementById("highlight-user");
+    const textEl = document.getElementById("highlight-text");
+
+    if (container && userEl && textEl) {
+      userEl.textContent = data.user;
+      userEl.style.color = data.color || "#9146ff";
+      textEl.textContent = data.text;
+
+      container.classList.remove("highlight-hidden");
+      container.classList.add("highlight-visible");
+
+      // Desaparece después de 8 segundos
+      clearTimeout(window._highlightTimeout);
+      window._highlightTimeout = setTimeout(() => {
+        container.classList.remove("highlight-visible");
+        container.classList.add("highlight-hidden");
+      }, 8000);
+    }
   }
 
   // ─────────────── GITHUB UPDATE ───────────────
