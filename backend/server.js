@@ -61,7 +61,7 @@ app.post("/kick/webhook", async (req, res) => {
       case "chat.message.sent": {
         const user = body.sender?.username;
         const text = body.content;
-        const color = body.sender?.identity?.color || "#00ff88";
+        const color = body.sender?.identity?.username_color || "#00ff88"; // ← campo correcto
 
         broadcast({
           type: "chat-message",
