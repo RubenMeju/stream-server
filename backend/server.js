@@ -93,7 +93,7 @@ app.post("/github/webhook", async (req, res) => {
       totalCommits,
     });
 
-    console.log("🚀 GitHub update:", repo.name, "| commits:", totalCommits);
+    // console.log("🚀 GitHub update:", repo.name, "| commits:", totalCommits);
     res.sendStatus(200);
   } catch (err) {
     console.error("Error GitHub webhook:", err.message);
@@ -155,7 +155,7 @@ const server = app.listen(PORT, async () => {
 
     const moderatorId = await getBroadcasterId(appToken, MODERATOR_LOGIN);
 
-    console.log("Broadcaster ID:", broadcasterId);
+    // console.log("Broadcaster ID:", broadcasterId);
 
     pollFollowers(activeUserToken, broadcasterId);
 
@@ -344,7 +344,7 @@ app.get("/kick/callback", async (req, res) => {
   });
 
   const data = await r.json();
-  console.log("Kick token:", data);
+  // console.log("Kick token:", data);
 
   res.send(`
     <b>Access Token:</b> ${data.access_token}<br><br>

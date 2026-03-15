@@ -32,7 +32,7 @@ async function validateToken(token) {
     headers: { Authorization: `OAuth ${token}` },
   });
   const data = await res.json();
-  console.log("Token válido:", data);
+  // console.log("Token válido:", data);
   return data;
 }
 

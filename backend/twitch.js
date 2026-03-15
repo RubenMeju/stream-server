@@ -1,6 +1,6 @@
 const { CLIENT_ID, CLIENT_SECRET } = require("./config");
 
-console.log({ CLIENT_ID, CLIENT_SECRET });
+// console.log({ CLIENT_ID, CLIENT_SECRET });
 
 async function getAppToken() {
   const res = await fetch(
@@ -13,7 +13,7 @@ async function getAppToken() {
 }
 
 async function getBroadcasterId(token, login) {
-  console.log("Buscando usuario:", login);
+  // console.log("Buscando usuario:", login);
 
   const res = await fetch(`https://api.twitch.tv/helix/users?login=${login}`, {
     headers: {
@@ -23,7 +23,7 @@ async function getBroadcasterId(token, login) {
   });
 
   const data = await res.json();
-  console.log("Respuesta Twitch users:", data);
+  // console.log("Respuesta Twitch users:", data);
 
   if (!data.data || data.data.length === 0) {
     throw new Error("Usuario no encontrado");
@@ -86,7 +86,7 @@ async function validateAndRefreshToken(accessToken, refreshToken) {
     return await refreshUserToken(refreshToken);
   }
 
-  console.log("✅ Token válido:", data);
+  // console.log("✅ Token válido:", data);
   return { accessToken, refreshToken };
 }
 
