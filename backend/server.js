@@ -302,15 +302,24 @@ app.post("/highlight", (req, res) => {
 
 let kickCodeVerifier = "";
 
+//
+// ─────────────────────────────
+// KICK AUTH
+// ─────────────────────────────
+//
+
+const kickVerifiers = new Map();
+
 app.get("/kick/auth", (req, res) => {
-  // Generar PKCE
-  kickCodeVerifier = crypto.randomBytes(32).toString("base64url");
+  const codeVerifier = crypto.randomBytes(32).toString("base64url");
   const codeChallenge = crypto
     .createHash("sha256")
-    .update(kickCodeVerifier)
+    .update(codeVerifier)
     .digest("base64url");
 
-  const state = Buffer.from(kickCodeVerifier).toString("base64url");
+  const state = crypto.randomBytes(16).toString("hex");
+  kickVerifiers.set(state, codeVerifier);
+
   const params = new URLSearchParams({
     response_type: "code",
     client_id: process.env.KICK_CLIENT_ID,
@@ -325,15 +334,22 @@ app.get("/kick/auth", (req, res) => {
 });
 
 app.get("/kick/callback", async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
   if (!code) return res.send("Sin código");
+
+  const codeVerifier = kickVerifiers.get(state);
+  kickVerifiers.delete(state);
+
+  if (!codeVerifier) return res.send("Code verifier no encontrado");
+
+  console.log("codeVerifier:", codeVerifier);
 
   const params = new URLSearchParams({
     grant_type: "authorization_code",
     client_id: process.env.KICK_CLIENT_ID,
     client_secret: process.env.KICK_CLIENT_SECRET,
     redirect_uri: "https://twitch-a7sp.onrender.com/kick/callback",
-    code_verifier: kickCodeVerifier,
+    code_verifier: codeVerifier,
     code,
   });
 
@@ -343,9 +359,9 @@ app.get("/kick/callback", async (req, res) => {
     body: params,
   });
 
-  console.log("Kick token status:", r.status); // ← añade esto
+  console.log("Kick token status:", r.status);
   const text = await r.text();
-  console.log("Kick token raw:", text); // ← y esto
+  console.log("Kick token raw:", text);
 
   let data;
   try {
