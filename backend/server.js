@@ -329,7 +329,7 @@ app.get("/kick/auth", (req, res) => {
     response_type: "code",
     client_id: process.env.KICK_CLIENT_ID,
     redirect_uri: "https://twitch-a7sp.onrender.com/kick/callback",
-    scope: "user:read channel:read:chat channel:write:chat events:subscribe",
+    scope: "user:read channel:read channel:write chat:write events:subscribe",
     code_challenge: codeChallenge,
     code_challenge_method: "S256",
     state,
