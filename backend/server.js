@@ -2,6 +2,8 @@ require("dotenv").config({ path: ".env.local" });
 
 const express = require("express");
 const bodyParser = require("body-parser");
+const crypto = require("crypto");
+
 const { broadcast, initWebSocket } = require("./websocket");
 
 const {
@@ -298,7 +300,6 @@ app.post("/highlight", (req, res) => {
 // ─────────────────────────────
 //
 
-const crypto = require("crypto");
 let kickCodeVerifier = "";
 
 app.get("/kick/auth", (req, res) => {
