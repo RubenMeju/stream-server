@@ -300,7 +300,6 @@ app.post("/highlight", (req, res) => {
 // ─────────────────────────────
 //
 
-
 const kickVerifiers = new Map();
 
 app.get("/kick/auth", (req, res) => {
@@ -340,7 +339,18 @@ app.get("/kick/callback", async (req, res) => {
 
   if (!codeVerifier) return res.send("Code verifier no encontrado");
 
-  console.log("code:", code);
+  // ← intenta decodificar el code si viene en base64
+  let decodedCode = code;
+  try {
+    const decoded = Buffer.from(code, "base64").toString("utf8");
+    if (decoded.match(/^[0-9A-Z]{26}$/)) {
+      decodedCode = decoded;
+      console.log("code decodificado:", decodedCode);
+    }
+  } catch {}
+
+  console.log("code original:", code);
+  console.log("code usado:", decodedCode);
   console.log("codeVerifier:", codeVerifier);
 
   const body = new URLSearchParams();
@@ -349,7 +359,7 @@ app.get("/kick/callback", async (req, res) => {
   body.append("client_secret", process.env.KICK_CLIENT_SECRET);
   body.append("redirect_uri", "https://twitch-a7sp.onrender.com/kick/callback");
   body.append("code_verifier", codeVerifier);
-  body.append("code", code);
+  body.append("code", decodedCode);
 
   const r = await fetch("https://id.kick.com/oauth/token", {
     method: "POST",
@@ -362,7 +372,11 @@ app.get("/kick/callback", async (req, res) => {
   console.log("Kick token raw:", text);
 
   let data;
-  try { data = JSON.parse(text); } catch { data = {}; }
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = {};
+  }
 
   res.send(`
     <b>Access Token:</b> ${data.access_token}<br><br>
