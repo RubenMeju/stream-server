@@ -20,7 +20,10 @@ async function createKickEventSubscriptions(accessToken) {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ type: event }),
+          body: JSON.stringify({
+            type: event,
+            broadcaster_user_id: process.env.KICK_BROADCASTER_ID,
+          }),
         },
       );
 

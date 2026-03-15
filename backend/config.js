@@ -22,4 +22,5 @@ module.exports = {
   KICK_CHANNEL: process.env.KICK_CHANNEL || "mejudev",
   KICK_ACCESS_TOKEN: process.env.KICK_ACCESS_TOKEN,
   KICK_REFRESH_TOKEN: process.env.KICK_REFRESH_TOKEN,
+  BROADCASTER_ID: process.env.BROADCASTER_ID,
 };
