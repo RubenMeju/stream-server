@@ -528,7 +528,7 @@ app.get("/kick/callback", async (req, res) => {
 
 // solo para depurar
 app.get("/kick/me", async (req, res) => {
-  const r = await fetch("https://api.kick.com/public/v1/users/me", {
+  const r = await fetch("https://api.kick.com/public/v1/users", {
     headers: {
       Authorization: `Bearer ${process.env.KICK_ACCESS_TOKEN}`,
       "Content-Type": "application/json",
