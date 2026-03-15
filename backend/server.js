@@ -525,4 +525,17 @@ app.get("/kick/callback", async (req, res) => {
     `);
   }
 });
+
+// solo para depurar
+app.get("/kick/me", async (req, res) => {
+  const r = await fetch("https://api.kick.com/public/v1/users/me", {
+    headers: {
+      Authorization: `Bearer ${process.env.KICK_ACCESS_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+  });
+  const data = await r.json();
+  console.log("Kick me:", JSON.stringify(data, null, 2));
+  res.json(data);
+});
 initWebSocket(server, getState);
