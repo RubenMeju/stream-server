@@ -563,4 +563,28 @@ app.get("/kick/callback", async (req, res) => {
 //   console.log("Kick me:", JSON.stringify(data, null, 2));
 //   res.json(data);
 // });
+
+// solo para depurar borra suscripciones y las recrea para kick
+app.get("/kick/reset-subs", async (req, res) => {
+  const accessToken = process.env.KICK_ACCESS_TOKEN;
+
+  // Borrar existentes
+  const delRes = await fetch(
+    "https://api.kick.com/public/v1/events/subscriptions",
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+  console.log("🗑️ Kick subs borradas:", delRes.status);
+
+  // Recrear
+  const { createKickEventSubscriptions } = require("./kick");
+  await createKickEventSubscriptions(accessToken);
+
+  res.send("Kick suscripciones reseteadas");
+});
 initWebSocket(server, getState);
