@@ -20,4 +20,6 @@ module.exports = {
   KICK_CLIENT_ID: process.env.KICK_CLIENT_ID,
   KICK_CLIENT_SECRET: process.env.KICK_CLIENT_SECRET,
   KICK_CHANNEL: process.env.KICK_CHANNEL || "mejudev",
+  KICK_ACCESS_TOKEN: process.env.KICK_ACCESS_TOKEN,
+  KICK_REFRESH_TOKEN: process.env.KICK_REFRESH_TOKEN,
 };

@@ -24,6 +24,8 @@ const {
   validateAndRefreshToken,
 } = require("./twitch");
 
+const createKickEventSubscriptions = require("./kick");
+
 const { handleTwitchWebhook } = require("./webhook");
 const { createAllEventSubSubscriptions } = require("./eventsub");
 
@@ -42,6 +44,72 @@ let activeUserToken = USER_TOKEN;
 app.post("/twitch/webhook", (req, res) => {
   req.userToken = activeUserToken;
   handleTwitchWebhook(req, res, true);
+});
+
+//
+// ─────────────────────────────
+// KICK WEBHOOK
+// ─────────────────────────────
+app.post("/kick/webhook", async (req, res) => {
+  try {
+    const eventType = req.headers["kick-event-type"];
+    const body = req.body;
+
+    console.log("📨 Kick event:", eventType);
+
+    switch (eventType) {
+      case "chat.message.sent": {
+        const user = body.sender?.username;
+        const text = body.content;
+        const color = body.sender?.identity?.color || "#00ff88";
+
+        broadcast({
+          type: "chat-message",
+          user,
+          text,
+          color,
+          platform: "kick",
+        });
+        console.log(`💬 Kick Chat [${user}]: ${text}`);
+        break;
+      }
+
+      case "channel.followed": {
+        const follower = body.follower?.username;
+        if (follower) {
+          broadcast({ type: "follow", name: follower, platform: "kick" });
+          console.log(`💚 Kick Follow: ${follower}`);
+        }
+        break;
+      }
+
+      case "channel.subscription.new":
+      case "channel.subscription.renewal": {
+        const user = body.subscriber?.username;
+        broadcast({ type: "subscribe", name: user, platform: "kick" });
+        console.log(`💚 Kick Sub: ${user}`);
+        break;
+      }
+
+      case "channel.subscription.gifts": {
+        const gifter = body.gifter?.username || "Anónimo";
+        const total = body.giftees?.length || 1;
+        broadcast({ type: "gift-sub", name: gifter, total, platform: "kick" });
+        console.log(`💚 Kick Gift Sub: ${gifter} x${total}`);
+        break;
+      }
+
+      case "livestream.status.updated": {
+        console.log(`📺 Kick stream ${body.is_live ? "ONLINE" : "OFFLINE"}`);
+        break;
+      }
+    }
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("Error Kick webhook:", err.message);
+    res.sendStatus(500);
+  }
 });
 //
 // ─────────────────────────────
@@ -161,6 +229,7 @@ const server = app.listen(PORT, async () => {
 
     const callbackUrl = "https://twitch-a7sp.onrender.com/twitch/webhook";
 
+    // Crear suscripciones EventSub para twitch
     await createAllEventSubSubscriptions(
       appToken,
       activeUserToken,
@@ -169,6 +238,9 @@ const server = app.listen(PORT, async () => {
       callbackUrl,
       WEBHOOK_SECRET,
     );
+
+    // Crear suscripciones EventSub para kick
+    await createKickEventSubscriptions(process.env.KICK_ACCESS_TOKEN);
 
     console.log("✅ Inicialización completa");
   } catch (err) {
