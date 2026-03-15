@@ -310,7 +310,7 @@ app.get("/kick/auth", (req, res) => {
     .update(kickCodeVerifier)
     .digest("base64url");
 
-  const state = crypto.randomBytes(16).toString("hex");
+  const state = Buffer.from(kickCodeVerifier).toString("base64url");
   const params = new URLSearchParams({
     response_type: "code",
     client_id: process.env.KICK_CLIENT_ID,
