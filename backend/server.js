@@ -300,13 +300,6 @@ app.post("/highlight", (req, res) => {
 // ─────────────────────────────
 //
 
-let kickCodeVerifier = "";
-
-//
-// ─────────────────────────────
-// KICK AUTH
-// ─────────────────────────────
-//
 
 const kickVerifiers = new Map();
 
@@ -347,21 +340,21 @@ app.get("/kick/callback", async (req, res) => {
 
   if (!codeVerifier) return res.send("Code verifier no encontrado");
 
+  console.log("code:", code);
   console.log("codeVerifier:", codeVerifier);
 
-  const params = new URLSearchParams({
-    grant_type: "authorization_code",
-    client_id: process.env.KICK_CLIENT_ID,
-    client_secret: process.env.KICK_CLIENT_SECRET,
-    redirect_uri: "https://twitch-a7sp.onrender.com/kick/callback",
-    code_verifier: codeVerifier,
-    code,
-  });
+  const body = new URLSearchParams();
+  body.append("grant_type", "authorization_code");
+  body.append("client_id", process.env.KICK_CLIENT_ID);
+  body.append("client_secret", process.env.KICK_CLIENT_SECRET);
+  body.append("redirect_uri", "https://twitch-a7sp.onrender.com/kick/callback");
+  body.append("code_verifier", codeVerifier);
+  body.append("code", code);
 
   const r = await fetch("https://id.kick.com/oauth/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: params,
+    body: body.toString(),
   });
 
   console.log("Kick token status:", r.status);
@@ -369,11 +362,7 @@ app.get("/kick/callback", async (req, res) => {
   console.log("Kick token raw:", text);
 
   let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    data = {};
-  }
+  try { data = JSON.parse(text); } catch { data = {}; }
 
   res.send(`
     <b>Access Token:</b> ${data.access_token}<br><br>
