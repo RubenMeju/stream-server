@@ -64,21 +64,24 @@ twIDAQAB
 -----END PUBLIC KEY-----`;
 
 function verifyKickSignature(req) {
-  console.log("🔑 Verificando firma Kick...");
   try {
     const messageId = req.headers["kick-event-message-id"];
     const timestamp = req.headers["kick-event-message-timestamp"];
     const signature = req.headers["kick-event-signature"];
 
-    if (!messageId || !timestamp || !signature) return false;
+    if (!messageId || !timestamp || !signature) {
+      console.log("🔑 Faltan headers de firma");
+      return false;
+    }
 
-    const signaturePayload = Buffer.from(
-      `${messageId}.${timestamp}.${req.body}`,
-    );
+    const rawBody = req.body.toString("utf8"); // ← convertir Buffer a string
+    const signaturePayload = `${messageId}.${timestamp}.${rawBody}`;
+
+    console.log("🔑 Verificando firma Kick...");
 
     return crypto.verify(
       "sha256",
-      signaturePayload,
+      Buffer.from(signaturePayload),
       { key: KICK_PUBLIC_KEY, padding: crypto.constants.RSA_PKCS1_PADDING },
       Buffer.from(signature, "base64"),
     );
@@ -99,7 +102,6 @@ app.post(
 
   express.raw({ type: "application/json" }),
   async (req, res) => {
-    console.log("📨 Kick webhook recibido meju");
     try {
       console.log("📨 Kick webhook recibido");
 
