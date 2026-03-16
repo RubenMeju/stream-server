@@ -115,11 +115,15 @@ ws.onmessage = (event) => {
 
     if (container && userEl && textEl) {
       userEl.textContent = data.user;
-      userEl.style.color = data.color || "#9146ff";
+      const highlightColor =
+        data.platform === "kick" ? "#53fc18" : data.color || "#9146ff";
+      userEl.style.color = highlightColor;
+      container.style.borderColor = highlightColor;
+      container.style.boxShadow = `0 0 20px ${highlightColor}40`;
       textEl.textContent = data.text;
 
-      container.classList.remove("highlight-hidden");
-      container.classList.add("highlight-visible");
+      container.style.display = "block";
+      container.style.opacity = 1;
 
       // Desaparece después de 8 segundos
       clearTimeout(window._highlightTimeout);

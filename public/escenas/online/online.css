@@ -476,6 +476,7 @@ body {
   transition: all 0.4s ease;
 }
 #highlight-message {
+  display: none;
   position: fixed;
   bottom: 60px;
   left: 50%;
@@ -502,15 +503,6 @@ body {
   font-size: 16px;
   color: #efeff1;
   letter-spacing: 0.05em;
-}
-
-.highlight-hidden {
-  display: none;
-}
-
-.highlight-visible {
-  display: block;
-  animation: fadeInOut-highlight 8s forwards;
 }
 
 /* ════════════════════════════════
