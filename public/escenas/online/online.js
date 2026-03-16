@@ -128,8 +128,7 @@ ws.onmessage = (event) => {
       // Desaparece después de 8 segundos
       clearTimeout(window._highlightTimeout);
       window._highlightTimeout = setTimeout(() => {
-        container.classList.remove("highlight-visible");
-        container.classList.add("highlight-hidden");
+        container.style.display = "none";
       }, 8000);
     }
   }
