@@ -258,7 +258,7 @@ app.get("/auth/callback", async (req, res) => {
     client_secret: process.env.CLIENT_SECRET,
     code,
     grant_type: "authorization_code",
-    redirect_uri: "https://twitch-a7sp.onrender.com/auth/callback",
+    redirect_uri: `${BASE_URL}/auth/callback`,
   });
 
   const r = await fetch("https://id.twitch.tv/oauth2/token", {
@@ -475,7 +475,7 @@ app.get("/kick/auth", (req, res) => {
   const params = new URLSearchParams({
     response_type: "code",
     client_id: process.env.KICK_CLIENT_ID,
-    redirect_uri: "https://twitch-a7sp.onrender.com/kick/callback",
+    redirect_uri: `${BASE_URL}/kick/callback`,
     scope: "user:read channel:read channel:write chat:write events:subscribe",
     code_challenge: codeChallenge,
     code_challenge_method: "S256",
@@ -534,7 +534,7 @@ app.get("/kick/callback", async (req, res) => {
       grant_type: "authorization_code",
       client_id: process.env.KICK_CLIENT_ID,
       client_secret: process.env.KICK_CLIENT_SECRET,
-      redirect_uri: "https://twitch-a7sp.onrender.com/kick/callback",
+      redirect_uri: `${BASE_URL}/kick/callback`,
       code_verifier: codeVerifier,
       code: finalCode,
     });
