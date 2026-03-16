@@ -46,20 +46,64 @@ app.post("/twitch/webhook", (req, res) => {
   handleTwitchWebhook(req, res, true);
 });
 
+
+//
+// ─────────────────────────────
+// KICK SIGNATURE VERIFICATION
+// ─────────────────────────────
+//
+
+const KICK_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq/+l1WnlRrGSolDMA+A8
+6rAhMbQGmQ2SapVcGM3zq8ANXjnhDWocMqfWcTd95btDydITa10kDvHzw9WQOqp2
+MZI7ZyrfzJuz5nhTPCiJwTwnEtWft7nV14BYRDHvlfqPUaZ+1KR4OCaO/wWIk/rQ
+L/TjY0M70gse8rlBkbo2a8rKhu69RQTRsoaf4DVhDPEeSeI5jVrRDGAMGL3cGuyY
+6CLKGdjVEM78g3JfYOvDU/RvfqD7L89TZ3iN94jrmWdGz34JNlEI5hqK8dd7C5EF
+BEbZ5jgB8s8ReQV8H+MkuffjdAj3ajDDX3DOJMIut1lBrUVD1AaSrGCKHooWoL2e
+twIDAQAB
+-----END PUBLIC KEY-----`;
+
+function verifyKickSignature(req) {
+  try {
+    const messageId = req.headers["kick-event-message-id"];
+    const timestamp = req.headers["kick-event-message-timestamp"];
+    const signature = req.headers["kick-event-signature"];
+
+    if (!messageId || !timestamp || !signature) return false;
+
+    const signaturePayload = Buffer.from(`${messageId}.${timestamp}.${req.body}`);
+
+    return crypto.verify(
+      "sha256",
+      signaturePayload,
+      { key: KICK_PUBLIC_KEY, padding: crypto.constants.RSA_PKCS1_PADDING },
+      Buffer.from(signature, "base64"),
+    );
+  } catch (err) {
+    console.warn("⚠️ Error verificando firma Kick:", err.message);
+    return false;
+  }
+}
+
 //
 // ─────────────────────────────
 // KICK WEBHOOK
 // ─────────────────────────────
+//
+
 app.post(
   "/kick/webhook",
   express.raw({ type: "application/json" }),
   async (req, res) => {
     try {
       console.log("📨 Kick webhook recibido");
-      console.log("Headers:", JSON.stringify(req.headers).slice(0, 300));
+
+      if (!verifyKickSignature(req)) {
+        console.warn("⚠️ Firma Kick inválida");
+        return res.sendStatus(403);
+      }
 
       const eventType = req.headers["kick-event-type"];
-
       let body;
       try {
         body = JSON.parse(req.body);
@@ -69,25 +113,16 @@ app.post(
       }
 
       console.log("📨 Kick event:", eventType);
-      console.log("📨 Kick body:", JSON.stringify(body).slice(0, 200));
 
       switch (eventType) {
         case "chat.message.sent": {
           const user = body.sender?.username;
           const text = body.content;
           const color = body.sender?.identity?.username_color || "#00ff88";
-
-          broadcast({
-            type: "chat-message",
-            user,
-            text,
-            color,
-            platform: "kick",
-          });
+          broadcast({ type: "chat-message", user, text, color, platform: "kick" });
           console.log(`💬 Kick Chat [${user}]: ${text}`);
           break;
         }
-
         case "channel.followed": {
           const follower = body.follower?.username;
           if (follower) {
@@ -96,7 +131,6 @@ app.post(
           }
           break;
         }
-
         case "channel.subscription.new":
         case "channel.subscription.renewal": {
           const user = body.subscriber?.username;
@@ -104,25 +138,17 @@ app.post(
           console.log(`💚 Kick Sub: ${user}`);
           break;
         }
-
         case "channel.subscription.gifts": {
           const gifter = body.gifter?.username || "Anónimo";
           const total = body.giftees?.length || 1;
-          broadcast({
-            type: "gift-sub",
-            name: gifter,
-            total,
-            platform: "kick",
-          });
+          broadcast({ type: "gift-sub", name: gifter, total, platform: "kick" });
           console.log(`💚 Kick Gift Sub: ${gifter} x${total}`);
           break;
         }
-
         case "livestream.status.updated": {
           console.log(`📺 Kick stream ${body.is_live ? "ONLINE" : "OFFLINE"}`);
           break;
         }
-
         default:
           console.log("Kick evento no manejado:", eventType);
           break;
@@ -566,25 +592,9 @@ app.get("/kick/callback", async (req, res) => {
 
 // solo para depurar borra suscripciones y las recrea para kick
 app.get("/kick/reset-subs", async (req, res) => {
-  const accessToken = process.env.KICK_ACCESS_TOKEN;
-
-  // Borrar existentes
-  const delRes = await fetch(
-    "https://api.kick.com/public/v1/events/subscriptions",
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    },
-  );
-  console.log("🗑️ Kick subs borradas:", delRes.status);
-
-  // Recrear
-  const { createKickEventSubscriptions } = require("./kick");
-  await createKickEventSubscriptions(accessToken);
-
+  const { refreshKickSubscriptions } = require("./kick");
+  await refreshKickSubscriptions(process.env.KICK_ACCESS_TOKEN);
   res.send("Kick suscripciones reseteadas");
 });
+
 initWebSocket(server, getState);

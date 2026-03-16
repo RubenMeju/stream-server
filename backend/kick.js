@@ -7,31 +7,45 @@ const KICK_EVENTS = [
   { name: "livestream.status.updated", version: 1 },
 ];
 
+async function getKickSubscriptions(accessToken) {
+  const res = await fetch(
+    "https://api.kick.com/public/v1/events/subscriptions",
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+  const data = await res.json();
+  return data?.data || [];
+}
+
+async function deleteKickSubscriptions(accessToken, ids) {
+  const params = ids.map((id) => `id=${id}`).join("&");
+  const res = await fetch(
+    `https://api.kick.com/public/v1/events/subscriptions?${params}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+  console.log("🗑️ Kick subs borradas:", res.status);
+}
+
 async function createKickEventSubscriptions(accessToken) {
   console.log("🟢 Comprobando suscripciones de Kick...");
 
   try {
-    // Verificar si ya existen
-    const checkRes = await fetch(
-      "https://api.kick.com/public/v1/events/subscriptions",
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
+    const existing = await getKickSubscriptions(accessToken);
 
-    const checkData = await checkRes.json();
-
-    if (checkData?.data?.length > 0) {
-      console.log(
-        `ℹ️ Suscripciones Kick ya existen (${checkData.data.length})`,
-      );
+    if (existing.length > 0) {
+      console.log(`ℹ️ Suscripciones Kick ya existen (${existing.length})`);
       return;
     }
 
-    // Crear si no existen
     const res = await fetch(
       "https://api.kick.com/public/v1/events/subscriptions",
       {
@@ -43,13 +57,13 @@ async function createKickEventSubscriptions(accessToken) {
         body: JSON.stringify({
           events: KICK_EVENTS,
           method: "webhook",
-          broadcaster_user_id: parseInt(process.env.KICK_BROADCASTER_ID),
         }),
       },
     );
 
-    if (res.status === 204 || res.status === 200) {
-      console.log("✅ Suscripciones Kick creadas correctamente");
+    if (res.status === 200) {
+      const data = await res.json();
+      console.log("✅ Suscripciones Kick creadas:", data);
     } else {
       const data = await res.json();
       console.warn("⚠️ Error creando suscripciones Kick:", data);
@@ -59,4 +73,14 @@ async function createKickEventSubscriptions(accessToken) {
   }
 }
 
-module.exports = { createKickEventSubscriptions };
+async function refreshKickSubscriptions(accessToken) {
+  const existing = await getKickSubscriptions(accessToken);
+  if (existing.length > 0) {
+    const ids = existing.map((s) => s.id);
+    await deleteKickSubscriptions(accessToken, ids);
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // ← espera 1s
+  }
+  await createKickEventSubscriptions(accessToken);
+}
+
+module.exports = { createKickEventSubscriptions, refreshKickSubscriptions };
