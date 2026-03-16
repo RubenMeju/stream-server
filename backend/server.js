@@ -14,6 +14,7 @@ const {
   MODERATOR_LOGIN,
   CHANNEL_LOGIN,
   WEBHOOK_SECRET,
+  BASE_URL,
   FOLLOWER_POLL_INTERVAL = 60000,
 } = require("./config");
 
@@ -301,8 +302,7 @@ const server = app.listen(PORT, async () => {
 
     pollFollowers(activeUserToken, broadcasterId);
 
-    const callbackUrl = "https://twitch-a7sp.onrender.com/twitch/webhook";
-
+    const callbackUrl = `${BASE_URL}/twitch/webhook`;
     // Crear suscripciones EventSub para twitch
     await createAllEventSubSubscriptions(
       appToken,
