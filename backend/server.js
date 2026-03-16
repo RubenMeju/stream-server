@@ -42,10 +42,10 @@ let activeUserToken = USER_TOKEN;
 //
 
 app.post("/twitch/webhook", (req, res) => {
+  console.log("📨 Twitch webhook recibido");
   req.userToken = activeUserToken;
   handleTwitchWebhook(req, res, true);
 });
-
 
 //
 // ─────────────────────────────
@@ -64,6 +64,7 @@ twIDAQAB
 -----END PUBLIC KEY-----`;
 
 function verifyKickSignature(req) {
+  console.log("🔑 Verificando firma Kick...");
   try {
     const messageId = req.headers["kick-event-message-id"];
     const timestamp = req.headers["kick-event-message-timestamp"];
@@ -71,7 +72,9 @@ function verifyKickSignature(req) {
 
     if (!messageId || !timestamp || !signature) return false;
 
-    const signaturePayload = Buffer.from(`${messageId}.${timestamp}.${req.body}`);
+    const signaturePayload = Buffer.from(
+      `${messageId}.${timestamp}.${req.body}`,
+    );
 
     return crypto.verify(
       "sha256",
@@ -93,8 +96,10 @@ function verifyKickSignature(req) {
 
 app.post(
   "/kick/webhook",
+
   express.raw({ type: "application/json" }),
   async (req, res) => {
+    console.log("📨 Kick webhook recibido meju");
     try {
       console.log("📨 Kick webhook recibido");
 
@@ -119,7 +124,13 @@ app.post(
           const user = body.sender?.username;
           const text = body.content;
           const color = body.sender?.identity?.username_color || "#00ff88";
-          broadcast({ type: "chat-message", user, text, color, platform: "kick" });
+          broadcast({
+            type: "chat-message",
+            user,
+            text,
+            color,
+            platform: "kick",
+          });
           console.log(`💬 Kick Chat [${user}]: ${text}`);
           break;
         }
@@ -141,7 +152,12 @@ app.post(
         case "channel.subscription.gifts": {
           const gifter = body.gifter?.username || "Anónimo";
           const total = body.giftees?.length || 1;
-          broadcast({ type: "gift-sub", name: gifter, total, platform: "kick" });
+          broadcast({
+            type: "gift-sub",
+            name: gifter,
+            total,
+            platform: "kick",
+          });
           console.log(`💚 Kick Gift Sub: ${gifter} x${total}`);
           break;
         }
@@ -438,6 +454,7 @@ function base64url(buffer) {
 ========================= */
 
 app.get("/kick/auth", (req, res) => {
+  console.log("kick auth");
   const codeVerifier = base64url(crypto.randomBytes(32));
 
   const codeChallenge = base64url(
@@ -470,6 +487,7 @@ app.get("/kick/auth", (req, res) => {
 ========================= */
 
 app.get("/kick/callback", async (req, res) => {
+  console.log("kick callback");
   try {
     const { code, state } = req.query;
 
