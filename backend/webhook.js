@@ -127,6 +127,7 @@ async function handleTwitchWebhook(req, res, isDev = false) {
         user,
         text,
         color: event.color || "#00cfff",
+        platform: "twitch",
       });
 
       const lowerText = text.toLowerCase();
