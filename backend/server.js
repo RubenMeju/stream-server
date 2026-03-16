@@ -74,14 +74,16 @@ function verifyKickSignature(req) {
       return false;
     }
 
-    const rawBody = req.body.toString("utf8"); // ← convertir Buffer a string
-    const signaturePayload = `${messageId}.${timestamp}.${rawBody}`;
+    // El payload es la concatenación exacta como bytes
+    const rawBody = req.body; // ← Buffer directo, sin toString
+    const prefix = Buffer.from(`${messageId}.${timestamp}.`);
+    const signaturePayload = Buffer.concat([prefix, rawBody]);
 
     console.log("🔑 Verificando firma Kick...");
 
     return crypto.verify(
       "sha256",
-      Buffer.from(signaturePayload),
+      signaturePayload,
       { key: KICK_PUBLIC_KEY, padding: crypto.constants.RSA_PKCS1_PADDING },
       Buffer.from(signature, "base64"),
     );
