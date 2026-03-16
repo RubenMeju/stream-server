@@ -31,7 +31,10 @@ const { createAllEventSubSubscriptions } = require("./eventsub");
 
 const app = express();
 app.use(express.static(PUBLIC_PATH));
-app.use(bodyParser.json());
+app.use((req, res, next) => {
+  if (req.path === "/kick/webhook") return next();
+  bodyParser.json()(req, res, next);
+});
 
 let activeUserToken = USER_TOKEN;
 
