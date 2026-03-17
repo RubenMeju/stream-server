@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "Servidor backend en tiempo real que integra Twitch, GitHub y VSCode mediante WebSocket para overlays de stream.",
   "main": "backend/server.js",
+  "publisher": "mejudev",
   "icon": "icon.png",
   "scripts": {
     "start": "node backend/server.js",
