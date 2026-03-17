@@ -2,7 +2,6 @@ require("dotenv").config({ path: ".env.local" });
 
 const express = require("express");
 const bodyParser = require("body-parser");
-const crypto = require("crypto");
 
 const { broadcast, initWebSocket } = require("./websocket");
 
@@ -26,9 +25,13 @@ const {
 } = require("./twitch");
 
 const { createKickEventSubscriptions } = require("./kick");
-
-const { handleTwitchWebhook } = require("./webhook");
 const { createAllEventSubSubscriptions } = require("./eventsub");
+
+const twitchRoutes = require("./routes/twitch");
+const kickRoutes = require("./routes/kick");
+const githubRoutes = require("./routes/github");
+const vscodeRoutes = require("./routes/vscode");
+const highlightRoutes = require("./routes/highlight");
 
 const app = express();
 app.use(express.static(PUBLIC_PATH));
@@ -38,248 +41,16 @@ app.use((req, res, next) => {
 });
 
 let activeUserToken = USER_TOKEN;
-
-//
-// ─────────────────────────────
-// TWITCH WEBHOOK
-// ─────────────────────────────
-//
-
-app.post("/twitch/webhook", (req, res) => {
-  console.log("📨 Twitch webhook recibido");
+app.use((req, res, next) => {
   req.userToken = activeUserToken;
-  handleTwitchWebhook(req, res, true);
+  next();
 });
 
-//
-// ─────────────────────────────
-// KICK SIGNATURE VERIFICATION
-// ─────────────────────────────
-//
-
-const KICK_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq/+l1WnlRrGSolDMA+A8
-6rAhMbQGmQ2SapVcGM3zq8ANXjnhDWocMqfWcTd95btDydITa10kDvHzw9WQOqp2
-MZI7ZyrfzJuz5nhTPCiJwTwnEtWft7nV14BYRDHvlfqPUaZ+1KR4OCaO/wWIk/rQ
-L/TjY0M70gse8rlBkbo2a8rKhu69RQTRsoaf4DVhDPEeSeI5jVrRDGAMGL3cGuyY
-6CLKGdjVEM78g3JfYOvDU/RvfqD7L89TZ3iN94jrmWdGz34JNlEI5hqK8dd7C5EF
-BEbZ5jgB8s8ReQV8H+MkuffjdAj3ajDDX3DOJMIut1lBrUVD1AaSrGCKHooWoL2e
-twIDAQAB
------END PUBLIC KEY-----`;
-
-function verifyKickSignature(req) {
-  try {
-    const messageId = req.headers["kick-event-message-id"];
-    const timestamp = req.headers["kick-event-message-timestamp"];
-    const signature = req.headers["kick-event-signature"];
-
-    if (!messageId || !timestamp || !signature) {
-      console.log("🔑 Faltan headers de firma");
-      return false;
-    }
-
-    // El payload es la concatenación exacta como bytes
-    const rawBody = req.body; // ← Buffer directo, sin toString
-    const prefix = Buffer.from(`${messageId}.${timestamp}.`);
-    const signaturePayload = Buffer.concat([prefix, rawBody]);
-
-    console.log("🔑 Verificando firma Kick...");
-
-    return crypto.verify(
-      "sha256",
-      signaturePayload,
-      { key: KICK_PUBLIC_KEY, padding: crypto.constants.RSA_PKCS1_PADDING },
-      Buffer.from(signature, "base64"),
-    );
-  } catch (err) {
-    console.warn("⚠️ Error verificando firma Kick:", err.message);
-    return false;
-  }
-}
-
-//
-// ─────────────────────────────
-// KICK WEBHOOK
-// ─────────────────────────────
-//
-
-app.post(
-  "/kick/webhook",
-
-  express.raw({ type: "application/json" }),
-  async (req, res) => {
-    try {
-      console.log("📨 Kick webhook recibido");
-
-      if (!verifyKickSignature(req)) {
-        console.warn("⚠️ Firma Kick inválida");
-        return res.sendStatus(403);
-      }
-
-      const eventType = req.headers["kick-event-type"];
-      let body;
-      try {
-        body = JSON.parse(req.body);
-      } catch {
-        console.warn("⚠️ No se pudo parsear el body de Kick");
-        return res.sendStatus(200);
-      }
-
-      console.log("📨 Kick event:", eventType);
-
-      switch (eventType) {
-        case "chat.message.sent": {
-          const user = body.sender?.username;
-          const text = body.content;
-          const color = body.sender?.identity?.username_color || "#00ff88";
-          broadcast({
-            type: "chat-message",
-            user,
-            text,
-            color,
-            platform: "kick",
-          });
-          console.log(`💬 Kick Chat [${user}]: ${text}`);
-          break;
-        }
-        case "channel.followed": {
-          const follower = body.follower?.username;
-          if (follower) {
-            broadcast({ type: "follow", name: follower, platform: "kick" });
-            console.log(`💚 Kick Follow: ${follower}`);
-          }
-          break;
-        }
-        case "channel.subscription.new":
-        case "channel.subscription.renewal": {
-          const user = body.subscriber?.username;
-          broadcast({ type: "subscribe", name: user, platform: "kick" });
-          console.log(`💚 Kick Sub: ${user}`);
-          break;
-        }
-        case "channel.subscription.gifts": {
-          const gifter = body.gifter?.username || "Anónimo";
-          const total = body.giftees?.length || 1;
-          broadcast({
-            type: "gift-sub",
-            name: gifter,
-            total,
-            platform: "kick",
-          });
-          console.log(`💚 Kick Gift Sub: ${gifter} x${total}`);
-          break;
-        }
-        case "livestream.status.updated": {
-          console.log(`📺 Kick stream ${body.is_live ? "ONLINE" : "OFFLINE"}`);
-          break;
-        }
-        default:
-          console.log("Kick evento no manejado:", eventType);
-          break;
-      }
-
-      res.sendStatus(200);
-    } catch (err) {
-      console.error("Error Kick webhook:", err.message);
-      res.sendStatus(500);
-    }
-  },
-);
-
-//
-// ─────────────────────────────
-// GITHUB WEBHOOK
-// ─────────────────────────────
-//
-
-app.post("/github/webhook", async (req, res) => {
-  try {
-    if (req.headers["x-github-event"] !== "push") {
-      return res.sendStatus(200);
-    }
-
-    const repo = req.body.repository;
-    const headCommit = req.body.head_commit;
-    if (!repo) return res.sendStatus(200);
-
-    // Total commits desde la API
-    const headers = {
-      Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-      "User-Agent": "overlay-app",
-    };
-
-    let totalCommits = 1;
-    try {
-      const commitsRes = await fetch(
-        `https://api.github.com/repos/${repo.owner.login}/${repo.name}/commits?per_page=1`,
-        { headers },
-      );
-      const linkHeader = commitsRes.headers.get("link");
-      if (linkHeader) {
-        const match = linkHeader.match(/&page=(\d+)>; rel="last"/);
-        if (match) totalCommits = parseInt(match[1]);
-      }
-    } catch (e) {
-      console.warn("No se pudo obtener totalCommits:", e.message);
-    }
-
-    broadcast({
-      type: "github-update",
-      repo: {
-        name: repo.name,
-        url: repo.html_url,
-        private: repo.private,
-      },
-      commit: {
-        title: headCommit?.message || "Sin mensaje",
-      },
-      totalCommits,
-    });
-
-    // console.log("🚀 GitHub update:", repo.name, "| commits:", totalCommits);
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("Error GitHub webhook:", err.message);
-    res.sendStatus(500);
-  }
-});
-
-//
-// ─────────────────────────────
-// AUTH CALLBACK (TWITCH)
-// ─────────────────────────────
-//
-
-app.get("/auth/callback", async (req, res) => {
-  const { code } = req.query;
-  if (!code) return res.send("Sin código");
-
-  const params = new URLSearchParams({
-    client_id: process.env.CLIENT_ID,
-    client_secret: process.env.CLIENT_SECRET,
-    code,
-    grant_type: "authorization_code",
-    redirect_uri: `${BASE_URL}/auth/callback`,
-  });
-
-  const r = await fetch("https://id.twitch.tv/oauth2/token", {
-    method: "POST",
-    body: params,
-  });
-
-  const data = await r.json();
-
-  res.send(`
-    <b>Access Token:</b> ${data.access_token}<br><br>
-    <b>Refresh Token:</b> ${data.refresh_token}
-  `);
-});
-
-//
-// ─────────────────────────────
-// START SERVER
-// ─────────────────────────────
-//
+app.use("/twitch", twitchRoutes);
+app.use("/kick", kickRoutes);
+app.use("/github", githubRoutes);
+app.use("/vscode", vscodeRoutes);
+app.use(highlightRoutes);
 
 const server = app.listen(PORT, async () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
@@ -297,8 +68,6 @@ const server = app.listen(PORT, async () => {
     const broadcasterId = await getBroadcasterId(appToken, CHANNEL_LOGIN);
 
     const moderatorId = await getBroadcasterId(appToken, MODERATOR_LOGIN);
-
-    // console.log("Broadcaster ID:", broadcasterId);
 
     pollFollowers(activeUserToken, broadcasterId);
 
@@ -321,12 +90,6 @@ const server = app.listen(PORT, async () => {
     console.error("❌ Error inicializando:", err.message);
   }
 });
-
-//
-// ─────────────────────────────
-// FOLLOWERS POLLING
-// ─────────────────────────────
-//
 
 async function pollFollowers(userToken, broadcasterId) {
   try {
