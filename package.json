@@ -1,15 +1,17 @@
 {
-  "name": "twitch",
+  "name": "stream-server",
+  "displayName": "Stream Server",
   "version": "1.0.0",
-  "description": "Proyecto Twitch Alerts",
+  "description": "Servidor backend en tiempo real que integra Twitch, GitHub y VSCode mediante WebSocket para overlays de stream.",
   "main": "backend/server.js",
+  "icon": "icon.png",
   "scripts": {
     "start": "node backend/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/RubenMeju/twitch.git"
+    "url": "git+https://github.com/RubenMeju/stream-server"
   },
   "keywords": [],
   "author": "",
