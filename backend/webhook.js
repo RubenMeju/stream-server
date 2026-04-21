@@ -9,10 +9,10 @@ function verifyTwitchSignature(req) {
   const messageId = req.headers["twitch-eventsub-message-id"];
   const timestamp = req.headers["twitch-eventsub-message-timestamp"];
   const signature = req.headers["twitch-eventsub-message-signature"];
+
   if (!messageId || !timestamp || !signature) return false;
 
-  const body = JSON.stringify(req.body);
-  const hmacMessage = messageId + timestamp + body;
+  const hmacMessage = messageId + timestamp + req.rawBody;
 
   const hash = crypto
     .createHmac("sha256", WEBHOOK_SECRET)
@@ -21,7 +21,6 @@ function verifyTwitchSignature(req) {
 
   return signature === `sha256=${hash}`;
 }
-
 // Envía un mensaje al chat de Twitch
 async function sendChatMessage(broadcasterId, senderId, userToken, message) {
   const res = await fetch("https://api.twitch.tv/helix/chat/messages", {

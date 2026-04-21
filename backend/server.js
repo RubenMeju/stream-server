@@ -35,10 +35,11 @@ const highlightRoutes = require("./routes/highlight");
 
 const app = express();
 app.use(express.static(PUBLIC_PATH));
-app.use((req, res, next) => {
-  if (req.path === "/kick/webhook") return next();
-  bodyParser.json()(req, res, next);
-});
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString("utf8");
+  }
+}));
 
 let activeUserToken = USER_TOKEN;
 app.use((req, res, next) => {
