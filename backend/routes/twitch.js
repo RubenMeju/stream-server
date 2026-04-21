@@ -3,7 +3,7 @@ const { handleTwitchWebhook } = require("../webhook");
 
 const router = express.Router();
 const isDev = process.env.NODE_ENV !== "production";
-
+console.log("🔥 Twitch router cargado");
 router.post("/webhook", (req, res) => {
   console.log("📨 Twitch webhook recibido");
   handleTwitchWebhook(req, res, isDev);
