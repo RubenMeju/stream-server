@@ -3,9 +3,12 @@
 //////////////////////////////////////////////////////////////////
 
 const state = {
-  lastFollowers: null,
-  goalFollowers: null,
+  followers: 0,
+  goal: 0,
 };
+
+let alertaActiva = false;
+const queue = [];
 
 //////////////////////////////////////////////////////////////////
 // DOM
@@ -60,7 +63,6 @@ function resetTerminal() {
 function showTerminal() {
   dom.alerta.classList.remove("hiding", "visible");
   dom.alerta.style.display = "block";
-
   requestAnimationFrame(() => dom.alerta.classList.add("visible"));
 }
 
@@ -74,7 +76,21 @@ function hideTerminal() {
 }
 
 //////////////////////////////////////////////////////////////////
-// ANIMATIONS
+// FOLLOWER BAR
+//////////////////////////////////////////////////////////////////
+
+function renderGoalProgress() {
+  if (!state.followers || !state.goal) return;
+
+  const pct = Math.floor((state.followers / state.goal) * 100);
+
+  addLine(`followers: ${state.followers} / ${state.goal}`, "white");
+
+  addLine(`goal_progress: ${pct}%`, "warn");
+}
+
+//////////////////////////////////////////////////////////////////
+// ANIMATION
 //////////////////////////////////////////////////////////////////
 
 async function animateCrackBar() {
@@ -100,10 +116,8 @@ async function animateCrackBar() {
 
   for (let i = 0; i <= 100; i += Math.floor(Math.random() * 7) + 2) {
     const v = Math.min(i, 100);
-
     fill.style.width = v + "%";
     pct.textContent = v + "%";
-
     await sleep(40 + Math.random() * 30);
   }
 
@@ -112,44 +126,31 @@ async function animateCrackBar() {
 }
 
 //////////////////////////////////////////////////////////////////
-// FOLLOWER NAME
+// ALERT SYSTEM (QUEUE SAFE)
 //////////////////////////////////////////////////////////////////
 
-function renderFollower(name) {
-  const span = document.createElement("span");
-  span.className = "follower-name";
-  span.textContent = "> " + name;
+async function processQueue() {
+  if (alertaActiva || queue.length === 0) return;
 
-  dom.body.insertBefore(span, dom.cursor());
-  dom.body.insertBefore(document.createElement("br"), dom.cursor());
+  alertaActiva = true;
+  const name = queue.shift();
+
+  await mostrarAlerta(name);
+
+  alertaActiva = false;
+  processQueue();
 }
 
-//////////////////////////////////////////////////////////////////
-// FOLLOWER GOAL
-//////////////////////////////////////////////////////////////////
-
-async function renderGoalProgress() {
-  if (state.lastFollowers === null || state.goalFollowers === null) return;
-
-  const prev = state.lastFollowers - 1;
-  const pct = Math.floor((state.lastFollowers / state.goalFollowers) * 100);
-
-  addLine(`followers_acquired: ${prev} → ${state.lastFollowers}`, "white");
-
-  await sleep(120);
-
-  addLine(`goal_progress: ${pct}%`, "warn");
+function enqueueAlert(name) {
+  queue.push(name);
+  processQueue();
 }
 
 //////////////////////////////////////////////////////////////////
 // MAIN ALERT
 //////////////////////////////////////////////////////////////////
-let alertaActiva = false;
 
-async function mostrarAlerta(nombre) {
-  if (alertaActiva) return; // ← evita llamadas duplicadas
-  alertaActiva = true;
-
+async function mostrarAlerta(name) {
   resetTerminal();
   showTerminal();
 
@@ -159,60 +160,55 @@ async function mostrarAlerta(nombre) {
   await sleep(120);
 
   await typeLine("$ ./stream_monitor.sh --watch live", "dim", 30);
-
   await sleep(200);
 
   addLine("[INFO] Monitoring incoming connections...", "dim");
-
   await sleep(500);
 
   addLine("[WARN] Anomalous traffic detected on port 1984", "warn");
-
   await sleep(300);
 
   await typeLine("$ traceroute --source unknown", "dim", 28);
-
   await sleep(250);
 
-  addLine("Tracing route... 3 hops... 1 hop... DIRECT HIT", "dim");
-
+  addLine("Tracing route... DIRECT HIT", "dim");
   await sleep(400);
 
-  addLine("[ALERT] !! INTRUSION ATTEMPT DETECTED !!", "red");
-
+  addLine("[ALERT] INTRUSION DETECTED", "red");
   await sleep(300);
 
-  addLine("Cracking stream permissions...", "white");
+  addLine("Cracking permissions...", "white");
 
   await animateCrackBar();
-
   await sleep(200);
 
-  addLine("[SUCCESS] Firewall bypassed. Access granted.", "success");
-
+  addLine("[SUCCESS] Access granted", "success");
   await sleep(300);
 
-  addLine("Escalating privileges... FOLLOWER role acquired", "warn");
-
+  addLine("FOLLOWER role acquired", "warn");
   await sleep(400);
 
-  addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "dim");
-
+  addLine("━━━━━━━━━━━━━━━━━━━━━━", "dim");
   await sleep(150);
 
-  renderFollower(nombre);
+  const span = document.createElement("span");
+  span.className = "follower-name";
+  span.textContent = "> " + name;
+
+  dom.body.insertBefore(span, dom.cursor());
+  dom.body.insertBefore(document.createElement("br"), dom.cursor());
 
   await sleep(200);
 
-  addLine("ha hackeado el directo y obtenido permisos de SEGUIDOR", "bright");
+  addLine("ha obtenido permisos de SEGUIDOR", "bright");
 
   await sleep(150);
 
-  await renderGoalProgress();
+  renderGoalProgress();
 
   await sleep(120);
 
-  addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "dim");
+  addLine("━━━━━━━━━━━━━━━━━━━━━━", "dim");
 
   startCountdown();
 }
@@ -228,7 +224,6 @@ function startCountdown() {
 
   setTimeout(() => {
     hideTerminal();
-    alertaActiva = false; // ← resetea el flag al cerrar
   }, 5000);
 }
 
@@ -252,36 +247,38 @@ updateClock();
 //////////////////////////////////////////////////////////////////
 
 function initSocket() {
-  // Después (producción Render):
   const loc = window.location;
   const wsProtocol = loc.protocol === "https:" ? "wss" : "ws";
   const socket = new WebSocket(`${wsProtocol}://${loc.host}/`);
 
   socket.onopen = () => console.log("WebSocket conectado");
 
-  socket.onerror = (err) => console.error("WebSocket error", err);
   socket.onmessage = (evt) => {
     try {
       const data = JSON.parse(evt.data);
 
-      if (data.type === "update") {
-        if (data.goal?.current !== undefined)
-          state.lastFollowers = data.goal.current;
-        if (data.goal?.target !== undefined)
-          state.goalFollowers = data.goal.target;
-      }
-
+      // INIT STATE
       if (data.type === "init") {
-        if (data.state?.followerCount !== undefined)
-          state.lastFollowers = data.state.followerCount;
-        state.goalFollowers = 500;
+        state.followers = data.state?.followerCount || 0;
+        state.goal = 500;
       }
 
-      if (data.type === "follow") mostrarAlerta(data.name); // ← solo una vez, al final
-    } catch {
+      // UPDATE STATE
+      if (data.type === "update") {
+        state.followers = data.goal?.current ?? state.followers;
+        state.goal = data.goal?.target ?? state.goal;
+      }
+
+      // FOLLOW EVENT
+      if (data.type === "follow") {
+        enqueueAlert(data.name || data.user);
+      }
+    } catch (e) {
       console.log("mensaje ignorado");
     }
   };
+
+  socket.onerror = (err) => console.error("WebSocket error", err);
 }
 
 initSocket();
