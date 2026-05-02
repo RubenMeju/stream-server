@@ -35,11 +35,13 @@ const highlightRoutes = require("./routes/highlight");
 
 const app = express();
 app.use(express.static(PUBLIC_PATH));
-app.use(express.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf.toString("utf8");
-  }
-}));
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf.toString("utf8");
+    },
+  }),
+);
 
 let activeUserToken = USER_TOKEN;
 app.use((req, res, next) => {
@@ -52,6 +54,15 @@ app.use("/kick", kickRoutes);
 app.use("/github", githubRoutes);
 app.use("/vscode", vscodeRoutes);
 app.use(highlightRoutes);
+
+app.get("/test-follow", (req, res) => {
+  broadcast({
+    type: "follow",
+    name: "TEST_USER",
+  });
+
+  res.send("ok");
+});
 
 const server = app.listen(PORT, async () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
