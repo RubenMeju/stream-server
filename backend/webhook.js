@@ -44,6 +44,7 @@ async function sendChatMessage(broadcasterId, senderId, userToken, message) {
 
 // Maneja todos los eventos EventSub importantes
 async function handleTwitchWebhook(req, res, isDev = false) {
+  console.log("Es sabado y quiero ver las alertas de los seguidoes");
   const messageType = req.headers["twitch-eventsub-message-type"];
   // 🔹 1. VERIFICACIÓN DEL WEBHOOK (challenge)
   if (messageType === "webhook_callback_verification") {
@@ -66,7 +67,7 @@ async function handleTwitchWebhook(req, res, isDev = false) {
   const data = req.body;
   const eventType = data.subscription?.type;
   const event = data.event;
-console.log("EVENT TYPE RAW:", eventType);
+  console.log("EVENT TYPE RAW:", eventType);
 
   switch (eventType) {
     case "channel.follow": {
