@@ -80,6 +80,13 @@ async function createAllEventSubSubscriptions(
       },
       token: appToken,
     },
+    // Alguien empieza a seguir el canal
+    {
+      type: "channel.follow",
+      version: "2",
+      condition: { broadcaster_user_id: broadcasterId, moderator_user_id: moderatorId }, // v2 requires moderator_user_id
+      token: userToken, // Requires user access token
+    },
   ];
 
   for (const event of events) {
