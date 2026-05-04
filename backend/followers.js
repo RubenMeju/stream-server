@@ -1,52 +1,60 @@
 // backend/followers.js
 const { broadcast } = require("./websocket");
 
+// ─────────────────────────────────────────────
+// ESTADO
+// ─────────────────────────────────────────────
+
 let followerCount = 0;
 let lastFollower = "--";
 
+// ─────────────────────────────────────────────
+// META DINÁMICA
+// ─────────────────────────────────────────────
+
+const HITOS = [50, 100, 150, 200, 300, 500, 750, 1000, 1500, 2000, 5000, 10000];
+
 function calcularMeta(total) {
-  const hitos = [
-    50, 100, 150, 200, 300, 500, 750, 1000, 1500, 2000, 5000, 10000,
-  ];
-  return hitos.find((h) => h > total) || total + 1000;
+  return HITOS.find((h) => h > total) ?? total + 1000;
 }
+
+// ─────────────────────────────────────────────
+// MUTACIONES
+// ─────────────────────────────────────────────
 
 function setFollowers(count, last) {
   followerCount = count;
   lastFollower = last;
-  // 🔹 LOG para depurar
   console.log(
-    "setFollowers → Último follower:",
-    lastFollower,
-    "Total:",
-    followerCount,
+    `📊 setFollowers → total: ${followerCount} | último: ${lastFollower}`,
   );
-}
-
-function getState() {
-  return { followerCount, lastFollower };
 }
 
 function incrementFollower(name) {
   followerCount++;
   lastFollower = name;
-  console.log(
-    "incrementFollower → Nuevo follower:",
-    name,
-    "Total:",
-    followerCount,
-  );
+  const meta = calcularMeta(followerCount);
 
-  const meta = calcularMeta(followerCount); // ← calcula la meta automáticamente
+  console.log(
+    `🎉 incrementFollower → nuevo: ${name} | total: ${followerCount} | meta: ${meta}`,
+  );
 
   broadcast({
     type: "update",
     follow: name,
-    goal: { current: followerCount, target: meta }, // ← usa meta dinámica
+    goal: { current: followerCount, target: meta },
     lastFollower,
   });
 
   broadcast({ type: "follow", name });
+}
+
+// ─────────────────────────────────────────────
+// LECTURAS
+// ─────────────────────────────────────────────
+
+function getState() {
+  return { followerCount, lastFollower };
 }
 
 module.exports = { setFollowers, getState, incrementFollower, calcularMeta };

@@ -55,14 +55,7 @@ app.use("/github", githubRoutes);
 app.use("/vscode", vscodeRoutes);
 app.use(highlightRoutes);
 
-app.get("/test-follow", (req, res) => {
-  broadcast({
-    type: "follow",
-    name: "TEST_USER",
-  });
 
-  res.send("ok");
-});
 
 const server = app.listen(PORT, async () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
@@ -377,18 +370,7 @@ app.get("/kick/callback", async (req, res) => {
   }
 });
 
-// solo para depurar
-// app.get("/kick/me", async (req, res) => {
-//   const r = await fetch("https://api.kick.com/public/v1/users", {
-//     headers: {
-//       Authorization: `Bearer ${process.env.KICK_ACCESS_TOKEN}`,
-//       "Content-Type": "application/json",
-//     },
-//   });
-//   const data = await r.json();
-//   console.log("Kick me:", JSON.stringify(data, null, 2));
-//   res.json(data);
-// });
+
 
 // solo para depurar borra suscripciones y las recrea para kick
 app.get("/kick/reset-subs", async (req, res) => {
