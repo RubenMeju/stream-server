@@ -22,7 +22,7 @@ const {
   getBroadcasterId,
   getAppToken,
   validateAndRefreshToken,
-} = require("./twitch");
+} = require("./routes/twitch");
 
 const { createKickEventSubscriptions } = require("./kick");
 const { createAllEventSubSubscriptions } = require("./eventsub");
