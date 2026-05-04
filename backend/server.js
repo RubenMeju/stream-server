@@ -22,7 +22,7 @@ const {
   getBroadcasterId,
   getAppToken,
   validateAndRefreshToken,
-} = require("./routes/twitch");
+} = require("./twitch");
 
 const { createKickEventSubscriptions } = require("./kick");
 const { createAllEventSubSubscriptions } = require("./eventsub");
@@ -54,8 +54,6 @@ app.use("/kick", kickRoutes);
 app.use("/github", githubRoutes);
 app.use("/vscode", vscodeRoutes);
 app.use(highlightRoutes);
-
-
 
 const server = app.listen(PORT, async () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
@@ -369,8 +367,6 @@ app.get("/kick/callback", async (req, res) => {
     `);
   }
 });
-
-
 
 // solo para depurar borra suscripciones y las recrea para kick
 app.get("/kick/reset-subs", async (req, res) => {
