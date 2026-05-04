@@ -108,14 +108,14 @@ function buildEventList(appToken, userToken, broadcasterId, moderatorId) {
       token: appToken,
     },
     {
-      // ⚠️  v2 REQUIERE userToken con scope moderator:read:followers
+      // channel.follow v2 con webhook requiere appToken (NO userToken)
       type: "channel.follow",
       version: "2",
       condition: {
         broadcaster_user_id: broadcasterId,
         moderator_user_id: moderatorId,
       },
-      token: userToken,
+      token: appToken,
     },
   ];
 }
@@ -167,12 +167,7 @@ async function createAllEventSubSubscriptions(
   // Recarga tras borrar
   const active = await getExistingSubscriptions(appToken);
 
-  const events = buildEventList(
-    appToken,
-    userToken,
-    broadcasterId,
-    moderatorId,
-  );
+  const events = buildEventList(appToken, userToken, broadcasterId, moderatorId);
 
   for (const event of events) {
     const alreadyExists = active.some(
@@ -195,13 +190,16 @@ async function createAllEventSubSubscriptions(
 
 async function deleteSubscriptions(appToken, ids) {
   for (const id of ids) {
-    await fetch(`https://api.twitch.tv/helix/eventsub/subscriptions?id=${id}`, {
-      method: "DELETE",
-      headers: {
-        "Client-ID": CLIENT_ID,
-        Authorization: `Bearer ${appToken}`,
+    await fetch(
+      `https://api.twitch.tv/helix/eventsub/subscriptions?id=${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Client-ID": CLIENT_ID,
+          Authorization: `Bearer ${appToken}`,
+        },
       },
-    });
+    );
     console.log(`🗑️  Suscripción borrada: ${id}`);
   }
 }
